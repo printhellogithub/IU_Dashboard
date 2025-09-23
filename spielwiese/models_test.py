@@ -37,19 +37,25 @@ class Student(Base):
     hochschule: Mapped[Hochschule] = relationship(back_populates="students")
 
     enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="student")
-    
-    def __init__(self, name: str, matrikelnummer: str, email_address: str, password: str, hochschule: "Hochschule" = None):
+
+    def __init__(
+        self,
+        name: str,
+        matrikelnummer: str,
+        email_address: str,
+        password: str,
+        hochschule: "Hochschule" = None,
+    ):
         self.name = name
         self.matrikelnummer = matrikelnummer
         self.email_address = email_address
-        self.password = password   # läuft über Setter → Hashing
+        self.password = password  # läuft über Setter → Hashing
         if hochschule:
             self.hochschule = hochschule
 
-
     def __repr__(self) -> str:
         return f"Student: {self.name}"
-    
+
     @hybrid_property
     def name(self):
         return self._name
@@ -57,7 +63,7 @@ class Student(Base):
     @name.setter
     def name(self, value: str):
         self._name = value
-    
+
     @hybrid_property
     def matrikelnummer(self):
         return self._matrikelnummer
@@ -65,15 +71,15 @@ class Student(Base):
     @matrikelnummer.setter
     def matrikelnummer(self, matrikelnummer):
         self._matrikelnummer = matrikelnummer
-    
-    @hybrid_property
-    def hochschule(self):
-        return self.hochschule
-    
+
+    #    @hybrid_property
+    #    def hochschule(self):
+    #        return self.hochschule
+
     @hybrid_property
     def email_address(self):
         return self._email_address
-    
+
     @email_address.setter
     def email_address(self, value: str):
         try:
@@ -81,7 +87,7 @@ class Student(Base):
             self._email_address = new_address
         except EmailNotValidError as e:
             raise ValueError(f"Ungültige Email: {e}")
-        
+
     @hybrid_property
     def password(self):
         raise AttributeError("Passwort ist geschützt")
@@ -89,8 +95,7 @@ class Student(Base):
     @password.setter
     def password(self, klartext: str) -> None:
         self._password = ph.hash(klartext)
-        
-    
+
     def verify_password(self, passworteingabe: str) -> bool:
         try:
             return ph.verify(self._password, passworteingabe)
@@ -98,57 +103,56 @@ class Student(Base):
             return False
 
 
-
 class Hochschule(Base):
     __tablename__ = "hochschule"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    _name: Mapped[str] = mapped_column(String)
+    _hochschul_name: Mapped[str] = mapped_column(String)
 
     students: Mapped[List[Student]] = relationship(back_populates="hochschule")
 
     def __repr__(self):
-        return f"Hochschule: {self.name}"
-    
-    @hybrid_property
-    def name(self):
-        return self._name
-    
-    @name.setter
-    def name(self, value: str):
-        self._name = value
+        return f"Hochschule: {self.hochschul_name}"
 
     @hybrid_property
-    def students(self):
-        return self.students
+    def hochschul_name(self):
+        return self._hochschul_name
+
+    @hochschul_name.setter
+    def hochschul_name(self, value: str):
+        self._hochschul_name = value
+
+    # @hybrid_property
+    # def students(self):
+    #     return self.students
 
 
 class Kurs(Base):
     __tablename__ = "kurs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    _name: Mapped[str] = mapped_column(String)
-    _nummer: Mapped[str] = mapped_column(String)
+    _kurs_name: Mapped[str] = mapped_column(String)
+    _kurs_nummer: Mapped[str] = mapped_column(String)
 
     enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="kurs")
-    
+
     def __repr__(self) -> str:
-        return f"Kurs: {self.name}"
-    
-    @hybrid_property
-    def name(self):
-        return self._name
-    
-    @name.setter
-    def name(self, value: str):
-        self._name = value
+        return f"Kurs: {self.kurs_name}"
 
     @hybrid_property
-    def nummer(self):
-        return self._nummer
-    
-    @nummer.setter
-    def nummer(self, value: str):
-        self._nummer = value
-    
+    def kurs_name(self):
+        return self._kurs_name
+
+    @kurs_name.setter
+    def kurs_name(self, value: str):
+        self._kurs_name = value
+
+    @hybrid_property
+    def kurs_nummer(self):
+        return self._kurs_nummer
+
+    @kurs_nummer.setter
+    def kurs_nummer(self, value: str):
+        self._kurs_nummer = value
+
 
 class Enrollment(Base):
     __tablename__ = "enrollment"
@@ -168,12 +172,12 @@ class Enrollment(Base):
     @hybrid_property
     def status(self):
         return self._status
-    
-    @status.setter
-    def status(self, neuer_status: Status):
-        self._status = neuer_status
 
-    
+    @status.setter
+    def status(self, value: Status):
+        self._status = value
+
+
 @dataclass
 class EnrollmentDTO:
     student_name: str
@@ -183,7 +187,7 @@ class EnrollmentDTO:
     @classmethod
     def make_dto(cls, enrollment: Enrollment) -> "EnrollmentDTO":
         return cls(
-        student_name=enrollment.student.name,
-        kurs_name=enrollment.kurs.name,
-        status=enrollment.status.name
-    )
+            student_name=enrollment.student.name,
+            kurs_name=enrollment.kurs.kurs_name,
+            status=enrollment.status.name,
+        )
