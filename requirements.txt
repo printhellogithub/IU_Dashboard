@@ -10,13 +10,17 @@ identify==2.6.14
 idna==3.10
 markdown-it-py==4.0.0
 mdurl==0.1.2
+mypy==1.18.2
+mypy_extensions==1.1.0
 nodeenv==1.9.1
+pathspec==0.12.1
 platformdirs==4.4.0
 pre_commit==4.3.0
 pycparser==2.23
 Pygments==2.19.2
 PyYAML==6.0.2
 rich==14.1.0
+ruff==0.13.1
 setuptools==80.9.0
 SQLAlchemy==2.0.43
 typing_extensions==4.15.0

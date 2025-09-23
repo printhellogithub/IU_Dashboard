@@ -26,14 +26,14 @@ class DatabaseManager:
         return self.session.scalars(stmt).first()
         
     def erstelle_kurs(self, name: str, nummer: str) -> Kurs:
-        kurs = Kurs(name=name, nummer=nummer)
+        kurs = Kurs(kurs_name=name, kurs_nummer=nummer)
         self.session.add(kurs)
         self.session.commit()
         # session.refresh(kurs)
         return kurs
     
     def lade_kurs(self, kursnummer) -> Kurs | None:
-        stmt = select(Kurs).where(Kurs.nummer == kursnummer)
+        stmt = select(Kurs).where(Kurs.kurs_nummer == kursnummer)
         return self.session.scalars(stmt).first()
     
     def lade_kurse_von_student(self, student: Student) -> list[Kurs]:

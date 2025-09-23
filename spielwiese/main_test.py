@@ -135,7 +135,7 @@ class DashboardCLI:
 
         if neuer_status:
             self.db.change_enrollment_status(enrollment, neuer_status)
-            print(f"Status geändert: {enrollment.kurs.name} -> {neuer_status.name}")
+            print(f"Status geändert: {enrollment.kurs.kurs_name} -> {neuer_status.name}")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
-from typing import List
+from typing import List, Optional
 from enum import Enum, auto
 from email_validator import validate_email, EmailNotValidError
 from argon2 import PasswordHasher
@@ -44,7 +44,7 @@ class Student(Base):
         matrikelnummer: str,
         email_address: str,
         password: str,
-        hochschule: "Hochschule" = None,
+        hochschule: Optional["Hochschule"] = None,
     ):
         self.name = name
         self.matrikelnummer = matrikelnummer
