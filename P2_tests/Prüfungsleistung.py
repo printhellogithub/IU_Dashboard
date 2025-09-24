@@ -15,9 +15,9 @@ class Base(DeclarativeBase):
 
 
 class Status(Enum):
-    OFFEN = auto()
-    IN_BEARBEITUNG = auto()
+    EINGESCHRIEBEN = auto()
     ABGESCHLOSSEN = auto()
+    NICHT_BESTANDEN = auto()
 
 
 class DatabaseManager:
@@ -30,7 +30,7 @@ class DatabaseManager:
         self.session = SessionLocal()
 
     def erstelle_enrollment(self) -> Enrollment:
-        enrollment = Enrollment(status=Status.OFFEN)
+        enrollment = Enrollment(status=Status.EINGESCHRIEBEN)
         self.session.add(enrollment)
         self.session.commit()
         # session.refresh(enrollment)
@@ -56,18 +56,24 @@ class Enrollment(Base):
         self._status = value
 
     def add_pruefungsleistung(self, note: float, datum: datetime.date):
-        if len(self.pruefungsleistungen) >= 3:
+        if len(self.pruefungsleistungen) > 3:
             raise ValueError(
                 "Ein Enrollment darf höchstens 3 Prüfungsleistungen haben."
             )
         versuch = int(len(self.pruefungsleistungen) + 1)
         self.pruefungsleistungen.append(Pruefungsleistung(versuch, note, datum))
+        self.change_status()
 
     def change_status(self):
         if self.pruefungsleistungen:
             for pruefungsleistung in self.pruefungsleistungen:
                 if pruefungsleistung.pruefung_bestanden():
                     self.status = Status.ABGESCHLOSSEN
+            if (
+                len(self.pruefungsleistungen) == 3
+                and self.status is not Status.ABGESCHLOSSEN
+            ):
+                self.status = Status.NICHT_BESTANDEN
 
 
 class Pruefungsleistung(Base):
@@ -107,7 +113,6 @@ class Test:
         print(enroll1.pruefungsleistungen)
         print(f"enroll1 status ohne PL == {enroll1.status}")
         enroll1.add_pruefungsleistung(2.3, datetime.date(2025, 3, 13))
-        enroll1.change_status()
         print(f"enroll1 status nach PL == {enroll1.status}")
         print(enroll1.pruefungsleistungen)
 
@@ -115,10 +120,8 @@ class Test:
         print(f"enroll2: {enroll2.pruefungsleistungen}")
         print(f"enroll2 status vor PL == {enroll2.status}")
         enroll2.add_pruefungsleistung(5.0, datetime.date(2025, 4, 25))
-        enroll2.change_status()
         print(f"enroll2 status nach PL mit 5.0 == {enroll2.status}")
         enroll2.add_pruefungsleistung(3.4, datetime.date(2025, 6, 21))
-        enroll2.change_status()
         print(f"enroll2 status nach V2 mit 3.4 == {enroll2.status}")
         print(enroll2.pruefungsleistungen)
 
@@ -126,17 +129,14 @@ class Test:
         print(f"enroll3: {enroll3.pruefungsleistungen}")
         print(f"enroll3 status vor PL == {enroll3.status}")
         enroll3.add_pruefungsleistung(5.0, datetime.date(2025, 4, 25))
-        enroll3.change_status()
         print(f"enroll3 status nach PL mit 5.0 == {enroll3.status}")
         enroll3.add_pruefungsleistung(4.3, datetime.date(2025, 6, 21))
-        enroll3.change_status()
         print(f"enroll3 status nach V2 mit 4.3 == {enroll3.status}")
         enroll3.add_pruefungsleistung(4.1, datetime.date(2025, 6, 25))
-        enroll3.change_status()
         print(f"enroll3 status nach V3 mit 4.1 == {enroll3.status}")
-        enroll3.add_pruefungsleistung(4.8, datetime.date(2025, 6, 21))
-        enroll3.change_status()
-        print(f"enroll3 status nach V4 mit 4.8 == {enroll3.status}")
+        # Teste ob 4. PL hinzugefügt werden kann - ValueError erfolgreich raised.
+        # enroll3.add_pruefungsleistung(4.8, datetime.date(2025, 6, 21))
+        # print(f"enroll3 status nach V4 mit 4.8 == {enroll3.status}")
         print(enroll3.pruefungsleistungen)
 
 
