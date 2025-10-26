@@ -9,7 +9,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
 
-# Basisklasse
 class Base(DeclarativeBase):
     pass
 
