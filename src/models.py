@@ -219,6 +219,22 @@ class Studiengang(Base):
 
     studenten: Mapped[List[Student]] = relationship(back_populates="studiengang")
 
+    @hybrid_property
+    def name(self):  # type: ignore[reportRedeclaration]
+        return self._name
+
+    @name.setter
+    def name(self, value: str):
+        self._name = value
+
+    @hybrid_property
+    def gesamt_ects_punkte(self):  # type: ignore[reportRedeclaration]
+        return self._gesamt_ects_punkte
+
+    @gesamt_ects_punkte.setter
+    def gesamt_ects_punkte(self, value: int):
+        self._gesamt_ects_punkte = value
+
     def erstelle_modul(self):
         pass
 
@@ -237,6 +253,14 @@ class Modul(Base):
 
     kurse: Mapped[List[Kurs]] = relationship(back_populates="modul")
 
+    @hybrid_property
+    def name(self):  # type: ignore[reportRedeclaration]
+        return self._name
+
+    @name.setter
+    def name(self, value: str):
+        self._name = value
+
 
 # Kurs
 class Kurs(Base):
@@ -251,12 +275,35 @@ class Kurs(Base):
 
     enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="kurs")
 
+    @hybrid_property
+    def name(self):  # type: ignore[reportRedeclaration]
+        return self._name
+
+    @name.setter
+    def name(self, value: str):
+        self._name = value
+
+    @hybrid_property
+    def nummer(self):  # type: ignore[reportRedeclaration]
+        return self._nummer
+
+    @nummer.setter
+    def nummer(self, value: str):
+        self._nummer = value
+
+    @hybrid_property
+    def ects_punkte(self):  # type: ignore[reportRedeclaration]
+        return self._ects_punkte
+
+    @ects_punkte.setter
+    def ects_punkte(self, value: int):
+        self._ects_punkte = value
+
 
 # Enrollment
 class Enrollment(Base):
     __tablename__ = "enrollment"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-
     _einschreibe_datum: Mapped[date] = mapped_column(Date)
     _end_datum: Mapped[date] = mapped_column(Date)
     _status: Mapped[EnrollmentStatus] = mapped_column(SQLEnum(EnrollmentStatus))
@@ -269,6 +316,22 @@ class Enrollment(Base):
     pruefungsleistungen: Mapped[List[Pruefungsleistung]] = relationship(
         back_populates="enrollment"
     )
+
+    @hybrid_property
+    def einschreibe_datum(self):  # type: ignore[reportRedeclaration]
+        return self._einschreibe_datum
+
+    @einschreibe_datum.setter
+    def einschreibe_datum(self, value):
+        self._einschreibe_datum = value
+
+    @hybrid_property
+    def end_datum(self):  # type: ignore[reportRedeclaration]
+        return self._end_datum
+
+    @end_datum.setter
+    def end_datum(self, value):
+        self._end_datum = value
 
     @hybrid_property
     def status(self):  # type: ignore[reportRedeclaration]
@@ -303,14 +366,38 @@ class Enrollment(Base):
 class Pruefungsleistung(Base):
     __tablename__ = "pruefungsleistung"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    versuch: Mapped[int] = mapped_column(Integer)
-    note: Mapped[float] = mapped_column(Float)
-    datum: Mapped[date] = mapped_column(Date)
+    _versuch: Mapped[int] = mapped_column(Integer)
+    _note: Mapped[float] = mapped_column(Float)
+    _datum: Mapped[date] = mapped_column(Date)
 
     enrollment_id: Mapped[int] = mapped_column(
         ForeignKey("enrollment.id"), nullable=False
     )
     enrollment: Mapped[Enrollment] = relationship(back_populates="pruefungsleistungen")
+
+    @hybrid_property
+    def versuch(self):  # type: ignore[reportRedeclaration]
+        return self._versuch
+
+    @versuch.setter
+    def versuch(self, value: int):
+        self._versuch = value
+
+    @hybrid_property
+    def note(self):  # type: ignore[reportRedeclaration]
+        return self._note
+
+    @note.setter
+    def note(self, value: float):
+        self._note = value
+
+    @hybrid_property
+    def datum(self):  # type: ignore[reportRedeclaration]
+        return self._datum
+
+    @datum.setter
+    def datum(self, value: date):
+        self._datum = value
 
     def __init__(self, versuch, note, datum):
         self.versuch = versuch
@@ -337,6 +424,30 @@ class Semester(Base):
 
     student_id = mapped_column(ForeignKey("student.id"))
     student: Mapped["Student"] = relationship(back_populates="semester")
+
+    @hybrid_property
+    def nummer(self):  # type: ignore[reportRedeclaration]
+        return self._nummer
+
+    @nummer.setter
+    def nummer(self, value: int):
+        self._nummer = value
+
+    @hybrid_property
+    def beginn(self):  # type: ignore[reportRedeclaration]
+        return self._beginn
+
+    @beginn.setter
+    def beginn(self, value: date):
+        self._beginn = value
+
+    @hybrid_property
+    def ende(self):  # type: ignore[reportRedeclaration]
+        return self._ende
+
+    @ende.setter
+    def ende(self, value: date):
+        self._ende = value
 
     def get_semester_status(self):
         pass
