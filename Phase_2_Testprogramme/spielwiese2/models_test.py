@@ -57,7 +57,7 @@ class Student(Base):
         return f"Student: {self.name}"
 
     @hybrid_property
-    def name(self):
+    def name(self):  # type: ignore[reportRedeclaration]
         return self._name
 
     @name.setter
@@ -65,19 +65,15 @@ class Student(Base):
         self._name = value
 
     @hybrid_property
-    def matrikelnummer(self):
+    def matrikelnummer(self):  # type: ignore[reportRedeclaration]
         return self._matrikelnummer
 
     @matrikelnummer.setter
-    def matrikelnummer(self, matrikelnummer):
-        self._matrikelnummer = matrikelnummer
-
-    #    @hybrid_property
-    #    def hochschule(self):
-    #        return self.hochschule
+    def matrikelnummer(self, value):
+        self._matrikelnummer = value
 
     @hybrid_property
-    def email_address(self):
+    def email_address(self):  # type: ignore[reportRedeclaration]
         return self._email_address
 
     @email_address.setter
@@ -89,12 +85,12 @@ class Student(Base):
             raise ValueError(f"Ungültige Email: {e}")
 
     @hybrid_property
-    def password(self):
+    def password(self):  # type: ignore[reportRedeclaration]
         raise AttributeError("Passwort ist geschützt")
 
     @password.setter
-    def password(self, klartext: str) -> None:
-        self._password = ph.hash(klartext)
+    def password(self, value: str) -> None:
+        self._password = ph.hash(value)
 
     def verify_password(self, passworteingabe: str) -> bool:
         try:
@@ -114,16 +110,12 @@ class Hochschule(Base):
         return f"Hochschule: {self.hochschul_name}"
 
     @hybrid_property
-    def hochschul_name(self):
+    def hochschul_name(self):  # type: ignore[reportRedeclaration]
         return self._hochschul_name
 
     @hochschul_name.setter
     def hochschul_name(self, value: str):
         self._hochschul_name = value
-
-    # @hybrid_property
-    # def students(self):
-    #     return self.students
 
 
 class Kurs(Base):
@@ -138,7 +130,7 @@ class Kurs(Base):
         return f"Kurs: {self.kurs_name}"
 
     @hybrid_property
-    def kurs_name(self):
+    def kurs_name(self):  # type: ignore[reportRedeclaration]
         return self._kurs_name
 
     @kurs_name.setter
@@ -146,7 +138,7 @@ class Kurs(Base):
         self._kurs_name = value
 
     @hybrid_property
-    def kurs_nummer(self):
+    def kurs_nummer(self):  # type: ignore[reportRedeclaration]
         return self._kurs_nummer
 
     @kurs_nummer.setter
@@ -170,7 +162,7 @@ class Enrollment(Base):
         return f"Kurs: {self.kurs_id}, Status: {self.status.name.replace('_', ' ')}"
 
     @hybrid_property
-    def status(self):
+    def status(self):  # type: ignore[reportRedeclaration]
         return self._status
 
     @status.setter

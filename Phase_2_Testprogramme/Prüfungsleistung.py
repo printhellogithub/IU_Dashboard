@@ -47,7 +47,7 @@ class Enrollment(Base):
     )
 
     @hybrid_property
-    def status(self):
+    def status(self):  # type: ignore[reportRedeclaration]
         return self._status
 
     @status.setter

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import Integer, String, ForeignKey
+from sqlalchemy import Integer, String, Float, Date, ForeignKey
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -8,7 +8,6 @@ from enum import Enum, auto
 from email_validator import validate_email, EmailNotValidError
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from dataclasses import dataclass
 from datetime import date
 
 # PasswordHasher
@@ -19,42 +18,43 @@ ph = PasswordHasher()
 class Base(DeclarativeBase):
     pass
 
+
 # ENUM-Klassen
 class EnrollmentStatus(Enum):
     IN_BEARBEITUNG = auto()
     ABGESCHLOSSEN = auto()
     NICHT_BESTANDEN = auto()
 
+
 class SemesterStatus(Enum):
     ZURUECKLIEGEND = auto()
     AKTUELL = auto()
     ZUKUENFTIG = auto()
 
+
 # Entity-Klassen
-#Student
+# Student
 class Student(Base):
     __tablename__ = "student"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String)
-    matrikelnummer: Mapped[str] = mapped_column(String)
-    email_address: Mapped[str] = mapped_column(String)    
-    password: Mapped[str] = mapped_column("password", String)
+    _name: Mapped[str] = mapped_column(String)
+    _matrikelnummer: Mapped[str] = mapped_column(String)
+    _email: Mapped[str] = mapped_column(String)
+    _password: Mapped[str] = mapped_column("password", String)
+
+    _ziel_note: Mapped[float] = mapped_column(Float)
+    _start_datum: Mapped[date] = mapped_column(Date)
+    _ziel_datum: Mapped[date] = mapped_column(Date)
+    exmatrikulationsdatum: Mapped[date] = mapped_column(Date)
 
     hochschule_id = mapped_column(ForeignKey("hochschule.id"))
-    hochschule: Mapped[Hochschule] = relationship(back_populates="students")
+    hochschule: Mapped[Hochschule] = relationship(back_populates="studenten")
 
-    studiengang_id: mapped_column(ForeignKey("studiengang.id"))
-    studiengang: Mapped[Studiengang] = relationship(back_populates="students")
+    studiengang_id = mapped_column(ForeignKey("studiengang.id"))
+    studiengang: Mapped[Studiengang] = relationship(back_populates="studenten")
 
-    semester_anzahl: Mapped[int] = mapped_column(Integer)
+    _semester_anzahl: Mapped[int] = mapped_column(Integer)
     semester: Mapped[List["Semester"]] = relationship(back_populates="student")
-
-    start_datum: Mapped[date] = mapped_column(Date)
-    ziel_datum: Mapped[date] = mapped_column(Date)
-
-    ziel_note: Mapped[float] = mapped_column(Float)
-
-    exmatrikulationsdatum: Mapped [date] = mapped_column(Date)
 
     enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="student")
 
@@ -62,7 +62,7 @@ class Student(Base):
         self,
         name: str,
         matrikelnummer: str,
-        email_address: str,
+        email: str,
         password: str,
         semester_anzahl: int,
         start_datum: date,
@@ -74,7 +74,7 @@ class Student(Base):
     ):
         self.name = name
         self.matrikelnummer = matrikelnummer
-        self.email_address = email_address
+        self.email = email
         self.password = password  # läuft über Setter → Hashing
 
         self.semester_anzahl = semester_anzahl
@@ -92,89 +92,81 @@ class Student(Base):
         return f"Student: {self.name}"
 
     @hybrid_property
-    def name(self):
-        return self.name
+    def name(self):  # type: ignore[reportRedeclaration]
+        return self._name
 
     @name.setter
     def name(self, value: str):
-        self.name = value
+        self._name = value
 
     @hybrid_property
-    def matrikelnummer(self):
-        return self.matrikelnummer
+    def matrikelnummer(self):  # type: ignore[reportRedeclaration]
+        return self._matrikelnummer
 
     @matrikelnummer.setter
-    def matrikelnummer(self, matrikelnummer):
-        self.matrikelnummer = matrikelnummer
-
-    #    @hybrid_property
-    #    def hochschule(self):
-    #        return self.hochschule
+    def matrikelnummer(self, value):
+        self._matrikelnummer = value
 
     @hybrid_property
-    def email_address(self):
-        return self.email_address
+    def email(self) -> str:  # type: ignore[reportRedeclaration]
+        return self._email
 
-    @email_address.setter
-    def email_address(self, value: str):
+    @email.setter
+    def email(self, value: str) -> None:
         try:
             new_address = validate_email(value).email
-            self.email_address = new_address
+            self._email = new_address
         except EmailNotValidError as e:
             raise ValueError(f"Ungültige Email: {e}")
 
     @hybrid_property
-    def password(self):
+    def password(self):  # type: ignore[reportRedeclaration]
         raise AttributeError("Passwort ist geschützt")
 
     @password.setter
-    def password(self, klartext: str) -> None:
-        self.password = ph.hash(klartext)
+    def password(self, value: str) -> None:
+        self._password = ph.hash(value)
 
     def verify_password(self, passworteingabe: str) -> bool:
         try:
             return ph.verify(self._password, passworteingabe)
         except VerifyMismatchError:
             return False
-    
+
     @hybrid_property
-    def semester_anzahl(self):
-        return self.semester_anzahl
+    def semester_anzahl(self):  # type: ignore[reportRedeclaration]
+        return self._semester_anzahl
 
     @semester_anzahl.setter
-    def semester_anzahl(self, value)
-        self.semester_anzahl = value
+    def semester_anzahl(self, value):
+        self._semester_anzahl = value
 
     @hybrid_property
-    def start_datum(self):
-        return self.start_datum
+    def start_datum(self):  # type: ignore[reportRedeclaration]
+        return self._start_datum
 
     @start_datum.setter
-    def start_datum(self, value)
-        self.start_datum = value
+    def start_datum(self, value):
+        self._start_datum = value
 
     @hybrid_property
-    def ziel_datum(self):
-        return self.ziel_datum
+    def ziel_datum(self):  # type: ignore[reportRedeclaration]
+        return self._ziel_datum
 
     @ziel_datum.setter
-    def ziel_datum(self, value)
-        self.ziel_datum = value
+    def ziel_datum(self, value):
+        self._ziel_datum = value
 
     @hybrid_property
-    def ziel_note(self):
-        return self.ziel_note
+    def ziel_note(self):  # type: ignore[reportRedeclaration]
+        return self._ziel_note
 
     @ziel_note.setter
-    def ziel_note(self, value)
-        self.ziel_note = value
+    def ziel_note(self, value):
+        self._ziel_note = value
 
-# Getter / Setter für hochschule, studiengang, enrollments, semester(?), ?
+    # Methoden von Student
 
-# Methoden von Student
-    def verify_password(self):
-        pass
-    
     def erstelle_enrollment(self):
         pass
 
@@ -183,21 +175,49 @@ class Student(Base):
 
     def berechne_durchschnittsnote(self):
         pass
-    
+
     def werde_exmatrikuliert(self):
         pass
 
 
-#Hochschule
+# Hochschule
 class Hochschule(Base):
-    pass
+    __tablename__ = "hochschule"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _name: Mapped[str] = mapped_column(String)
+
+    studenten: Mapped[List[Student]] = relationship(back_populates="hochschule")
+
+    studiengaenge: Mapped[List[Studiengang]] = relationship(back_populates="hochschule")
+
+    def __repr__(self):
+        return f"Hochschule: {self.name}"
+
+    @hybrid_property
+    def name(self):  # type: ignore[reportRedeclaration]
+        return self._name
+
+    @name.setter
+    def name(self, value: str):
+        self._name = value
 
     def erstelle_studiengang(self):
         pass
 
-#Studiengang
+
+# Studiengang
 class Studiengang(Base):
-    pass
+    __tablename__ = "studiengang"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _name: Mapped[str] = mapped_column(String)
+    _gesamt_ects_punkte: Mapped[int] = mapped_column(Integer)
+
+    hochschule_id = mapped_column(ForeignKey("hochschule.id"))
+    hochschule: Mapped[Hochschule] = relationship(back_populates="studiengaenge")
+
+    module: Mapped[List[Modul]] = relationship(back_populates="studiengang")
+
+    studenten: Mapped[List[Student]] = relationship(back_populates="studiengang")
 
     def erstelle_modul(self):
         pass
@@ -205,34 +225,118 @@ class Studiengang(Base):
     def fuege_kurs_zu_modul_hinzu(self):
         pass
 
-#Modul
+
+# Modul
 class Modul(Base):
-    pass
+    __tablename__ = "modul"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _name: Mapped[str] = mapped_column(String)
 
-#Kurs
+    studiengang_id = mapped_column(ForeignKey("studiengang.id"))
+    studiengang: Mapped[Studiengang] = relationship(back_populates="module")
+
+    kurse: Mapped[List[Kurs]] = relationship(back_populates="modul")
+
+
+# Kurs
 class Kurs(Base):
-    pass
+    __tablename__ = "kurs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _name: Mapped[str] = mapped_column(String)
+    _nummer: Mapped[str] = mapped_column(String)
+    _ects_punkte: Mapped[int] = mapped_column(Integer)
 
-#Enrollment
+    modul_id = mapped_column(ForeignKey("modul.id"))
+    modul: Mapped[Modul] = relationship(back_populates="kurs")
+
+    enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="kurs")
+
+
+# Enrollment
 class Enrollment(Base):
-    pass
+    __tablename__ = "enrollment"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    def add_pruefungsleistung(self):
-        pass
-    
-    def check_status(self)
-        pass
+    _einschreibe_datum: Mapped[date] = mapped_column(Date)
+    _end_datum: Mapped[date] = mapped_column(Date)
+    _status: Mapped[EnrollmentStatus] = mapped_column(SQLEnum(EnrollmentStatus))
 
-#Prüfungsleistung
+    student_id = mapped_column(ForeignKey("student.id"))
+    student: Mapped["Student"] = relationship(back_populates="enrollments")
+    kurs_id = mapped_column(ForeignKey("kurs.id"))
+    kurs: Mapped["Kurs"] = relationship(back_populates="enrollments")
+
+    pruefungsleistungen: Mapped[List[Pruefungsleistung]] = relationship(
+        back_populates="enrollment"
+    )
+
+    @hybrid_property
+    def status(self):  # type: ignore[reportRedeclaration]
+        return self._status
+
+    @status.setter
+    def status(self, value: EnrollmentStatus):
+        self._status = value
+
+    def add_pruefungsleistung(self, note: float, datum: date):
+        if len(self.pruefungsleistungen) > 3:
+            raise ValueError(
+                "Ein Enrollment darf höchstens 3 Prüfungsleistungen haben."
+            )
+        versuch = int(len(self.pruefungsleistungen) + 1)
+        self.pruefungsleistungen.append(Pruefungsleistung(versuch, note, datum))
+        self.check_status()
+
+    def check_status(self):
+        if self.pruefungsleistungen:
+            for pruefungsleistung in self.pruefungsleistungen:
+                if pruefungsleistung.ist_bestanden():
+                    self.status = EnrollmentStatus.ABGESCHLOSSEN
+            if (
+                len(self.pruefungsleistungen) == 3
+                and self.status is not EnrollmentStatus.ABGESCHLOSSEN
+            ):
+                self.status = EnrollmentStatus.NICHT_BESTANDEN
+
+
+# Prüfungsleistung
 class Pruefungsleistung(Base):
-    pass
+    __tablename__ = "pruefungsleistung"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    versuch: Mapped[int] = mapped_column(Integer)
+    note: Mapped[float] = mapped_column(Float)
+    datum: Mapped[date] = mapped_column(Date)
 
-    def bestanden(self):
-        pass
+    enrollment_id: Mapped[int] = mapped_column(
+        ForeignKey("enrollment.id"), nullable=False
+    )
+    enrollment: Mapped[Enrollment] = relationship(back_populates="pruefungsleistungen")
 
-#Semester
+    def __init__(self, versuch, note, datum):
+        self.versuch = versuch
+        self.note = note
+        self.datum = datum
+
+    def ist_bestanden(self):
+        if self.note > 4.0:
+            return False
+        else:
+            return True
+
+    def __repr__(self) -> str:
+        return f"PL Versuch {self.versuch}, Note {self.note}, Datum {self.datum}"
+
+
+# Semester
 class Semester(Base):
-    pass
+    __tablename__ = "semester"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    _nummer: Mapped[int] = mapped_column(Integer)
+    _beginn: Mapped[date] = mapped_column(Date)
+    _ende: Mapped[date] = mapped_column(Date)
+
+    student_id = mapped_column(ForeignKey("student.id"))
+    student: Mapped["Student"] = relationship(back_populates="semester")
 
     def get_semester_status(self):
         pass
