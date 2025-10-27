@@ -45,7 +45,7 @@ class Student(Base):
     _ziel_note: Mapped[float] = mapped_column(Float)
     _start_datum: Mapped[date] = mapped_column(Date)
     _ziel_datum: Mapped[date] = mapped_column(Date)
-    exmatrikulationsdatum: Mapped[date] = mapped_column(Date)
+    _exmatrikulationsdatum: Mapped[date] = mapped_column(Date)
 
     hochschule_id = mapped_column(ForeignKey("hochschule.id"))
     hochschule: Mapped[Hochschule] = relationship(back_populates="studenten")
@@ -166,18 +166,33 @@ class Student(Base):
         self._ziel_note = value
 
     # Methoden von Student
-
     def erstelle_enrollment(self):
         pass
 
     def berechne_gesamt_ects(self):
-        pass
+        gesamt_ects_punkte = 0
+        for enrollment in self.enrollments:
+            if enrollment.check_status():
+                gesamt_ects_punkte += enrollment.kurs.ects_punkte
+        return gesamt_ects_punkte
 
     def berechne_durchschnittsnote(self):
-        pass
+        noten = []
+        for enrollment in self.enrollments:
+            for pruefungsleistung in enrollment.pruefungsleistungen:
+                if pruefungsleistung.ist_bestanden():
+                    noten.append(pruefungsleistung.note)
+                else:
+                    pass
+        durchschnittsnote = sum(noten) / len(noten)
+        return durchschnittsnote
 
-    def werde_exmatrikuliert(self):
-        pass
+    @hybrid_property
+    def exmatrikulationsdatum(self):
+        return self._exmatrikulationsdatum
+
+    def werde_exmatrikuliert(self, exmatrikulationsdatum: date):
+        self._exmatrikulationsdatum = exmatrikulationsdatum
 
 
 # Hochschule
