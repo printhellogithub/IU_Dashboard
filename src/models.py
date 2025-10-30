@@ -8,7 +8,9 @@ from enum import Enum, auto
 from email_validator import validate_email, EmailNotValidError
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from datetime import date
+from datetime import date, datetime
+
+TODAY = datetime.today()
 
 # PasswordHasher
 ph = PasswordHasher()
@@ -167,6 +169,7 @@ class Student(Base):
 
     # Methoden von Student
     def erstelle_enrollment(self):
+        # verlegen nach controller? student müsste db parameter haben, oder?
         pass
 
     def berechne_gesamt_ects(self):
@@ -217,6 +220,7 @@ class Hochschule(Base):
         self._name = value
 
     def erstelle_studiengang(self):
+        # -> controller?
         pass
 
 
@@ -251,9 +255,11 @@ class Studiengang(Base):
         self._gesamt_ects_punkte = value
 
     def erstelle_modul(self):
+        # verlegen nach controller?
         pass
 
     def fuege_kurs_zu_modul_hinzu(self):
+        # heißt Kurs braucht .modul und andersherum, evtl. schon durch programierung erzwungen?
         pass
 
 
@@ -465,4 +471,9 @@ class Semester(Base):
         self._ende = value
 
     def get_semester_status(self):
-        pass
+        if TODAY < self.beginn:
+            return SemesterStatus.ZUKUENFTIG
+        elif TODAY >= self.beginn and TODAY <= self.ende:
+            return SemesterStatus.AKTUELL
+        else:
+            return SemesterStatus.ZURUECKLIEGEND

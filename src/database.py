@@ -59,27 +59,42 @@ class DatabaseManager:
         return enrollment
 
     # siehe models.py -> class Enrollment -> add_pruefungsleistung
-    def add_pruefungsleistung(self, student: Student, enrollment: Enrollment):
-        pass
+    def add_pruefungsleistung(self, versuch, note, datum):
+        pruefungsleistung = Pruefungsleistung(versuch=versuch, note=note, datum=datum)
+        self.session.add(pruefungsleistung)
+        self.session.commit()
+        return pruefungsleistung
 
-    def add_kurs(self, name: str, nummer: str) -> Kurs:
-        kurs = Kurs(kurs_name=name, kurs_nummer=nummer)
+    def add_kurs(self, name: str, nummer: str, ects_punkte: int) -> Kurs:
+        kurs = Kurs(name=name, nummer=nummer, ects_punkte=ects_punkte)
         self.session.add(kurs)
         self.session.commit()
         # session.refresh(kurs)
         return kurs
 
-    def add_modul(self, studiengang: Studiengang, kurs: Kurs):
-        pass
+    def add_modul(self, name: str, studiengang: Studiengang, kurs: Kurs):
+        modul = Modul(name=name)
+        self.session.add(modul)
+        self.session.commit()
+        return modul
 
-    def add_semester(self, student: Student):
-        pass
+    def add_semester(self, nummer, beginn, ende):
+        semester = Semester(nummer=nummer, beginn=beginn, ende=ende)
+        self.session.add(semester)
+        self.session.commit()
+        return semester
 
-    def add_studiengang(self):
-        pass
+    def add_studiengang(self, name, gesamt_ects_punkte):
+        studiengang = Studiengang(name=name, gesamt_ects_punkte=gesamt_ects_punkte)
+        self.session.add(studiengang)
+        self.session.commit()
+        return studiengang
 
-    def add_hochschule(self):
-        pass
+    def add_hochschule(self, name):
+        hochschule = Hochschule(name=name)
+        self.session.add(hochschule)
+        self.session.commit()
+        return hochschule
 
     def lade_student(self, email: str) -> Student | None:
         stmt = select(Student).where(Student.email == email)
@@ -94,23 +109,32 @@ class DatabaseManager:
         return self.session.scalars(stmt).first()
 
     def lade_pruefungsleistung(self, enrollment: Enrollment):
-        pass
+        stmt = select(Pruefungsleistung).where(
+            Pruefungsleistung.enrollment_id == enrollment.id
+        )
+        return self.session.scalars(stmt).first()
 
     def lade_kurs(self, kursnummer) -> Kurs | None:
         stmt = select(Kurs).where(Kurs.nummer == kursnummer)
         return self.session.scalars(stmt).first()
 
-    def lade_modul(self):
-        pass
+    def lade_modul(self, student: Student):
+        stmt = select(Modul).where(Modul.studiengang_id == student.studiengang_id)
+        return self.session.scalars(stmt).first()
 
-    def lade_semester(self):
-        pass
+    def lade_semester(self, student: Student):
+        stmt = select(Semester).where(Semester.student_id == student.id)
+        return self.session.scalars(stmt).first()
 
-    def lade_studiengang(self):
-        pass
+    # where-stmt wird fehlschlagen
+    def lade_studiengang(self, student: Student):
+        stmt = select(Studiengang).where(Studiengang.id == student.studiengang.id)
+        return self.session.scalars(stmt).first()
 
-    def lade_hochschule(self):
-        pass
+    # where-stmt wird fehlschlagen
+    def lade_hochschule(self, student: Student):
+        stmt = select(Hochschule).where(Hochschule.id == student.hochschule_id)
+        return self.session.scalars(stmt).first()
 
     def lade_enrollments_von_student(self, student_id: int) -> list[Enrollment]:
         stmt = (
@@ -127,11 +151,13 @@ class DatabaseManager:
         stmt = select(Kurs).join(Enrollment).where(Enrollment.student_id == student.id)
         return list(self.session.scalars(stmt))
 
-    def lade_module_von_student(self):
-        pass
+    def lade_module_von_student(self, student: Student):
+        stmt = select(Modul).where(Modul.studiengang_id == student.studiengang_id)
+        return list(self.session.scalars(stmt))
 
-    def lade_semester_von_student(self):
-        pass
+    def lade_semester_von_student(self, student: Student):
+        stmt = select(Semester).where(Semester.student_id == student.id)
+        return list(self.session.scalars(stmt))
 
     def change_student(self, student: Student):
         pass
