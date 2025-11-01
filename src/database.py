@@ -13,6 +13,8 @@ from models import (
 )
 from sqlalchemy import create_engine, select
 
+import csv
+
 
 class DatabaseManager:
     def __init__(self):
@@ -90,6 +92,19 @@ class DatabaseManager:
         self.session.commit()
         return studiengang
 
+    def add_hochschulen_von_csv(self):
+        with self.session as session:
+            with open("data/LISTE_Hochschulen_Hochschulkompass.csv") as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    stmt = select(Hochschule).where(
+                        Hochschule.name == row["Hochschulname"]
+                    )
+                    if not session.scalars(stmt).first():
+                        hochschule = Hochschule(name=row["Hochschulname"])
+                        session.add(hochschule)
+                    session.commit()
+
     def add_hochschule(self, name):
         hochschule = Hochschule(name=name)
         self.session.add(hochschule)
@@ -135,6 +150,11 @@ class DatabaseManager:
     def lade_hochschule(self, student: Student):
         stmt = select(Hochschule).where(Hochschule.id == student.hochschule_id)
         return self.session.scalars(stmt).first()
+
+    def lade__alle_hochschulen(self):
+        stmt = select(Hochschule)
+        result = self.session.scalars(stmt)
+        return result.all()
 
     def lade_enrollments_von_student(self, student_id: int) -> list[Enrollment]:
         stmt = (

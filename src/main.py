@@ -1,20 +1,31 @@
+from __future__ import annotations
 from database import DatabaseManager
 from models import (
     Student,
 )
 
+# pseudo-code: wie ich mir einen Controller OOP-based vorstellen kann:
+# class Controller:
+#     def __init__(self, db: DatabaseManager,):
+#         self.db = db
+#         self.student: Student | None = None
+
+#     def after_log_in_init(self, logged_in, student: Student):
+#         if login() == True:
+#             pass
+
 
 class Controller:
-    def __init__(self, db: DatabaseManager):
-        self.db = db
+    def __init__(self):
+        self.db = DatabaseManager()
         self.student: Student | None = None
 
     # --- Account & Login ---
-    def login(self, email: str, password: str) -> Student | None:
+    def login(self, email: str, password: str):
         student = self.db.lade_student(email)
         if student and student.verify_password(password):
             self.student = student
-            return student
+            return True
         return None
 
     def erstelle_account(
@@ -40,6 +51,26 @@ class Controller:
         #     )
         # return self.student
         pass
+
+    def load_dashboard_data(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        return {
+            "email": self.student.email,
+            "name": self.student.name,
+            "hochschule": self.student.hochschule.name,
+            "studiengang": self.student.studiengang.name,
+            "gesamt_ects": self.student.studiengang.gesamt_ects_punkte,
+        }
+
+    # ist ohne SQL!!!! -> macht nur Namen in Liste!
+    # def get_hochschulen_liste(self):
+    #     with open("data/LISTE_Hochschulen_Hochschulkompass.csv") as file:
+    #         reader = csv.DictReader(file)
+    #         hs_namen_liste = [row["Hochschulname"] for row in reader]
+    #     return hs_namen_liste
+    def get_hochschulen_liste(self):
+        return self.db.lade__alle_hochschulen()
 
     # # --- Enrollment-Operationen ---
     # def enrollments(self) -> list[Enrollment]:

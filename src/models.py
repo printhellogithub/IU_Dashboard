@@ -35,13 +35,21 @@ class SemesterStatus(Enum):
 
 
 # Entity-Klassen
+
+# Es wäre klug gewesen, eine User-Klasse zu machen, von der Student erbt,
+# dadurch wäre es möglich weitere User wie Hochschulmitarbeiter, Admins oder Ähnliche hinzuzufügen,
+# die auch von User (z.b. email/password/name/Hochschule) erben. Somit könnte man den
+# Hochschulmitarbeitern z.b. Statistiken zu kursen oder deren Prüfungen geben, z.b. Durchfallquote,
+# Anzahl d. Studierenden, durchschnittliche Anzahl der Prüfungsversuche, dursch. Bearbeitungszeit...
+
+
 # Student
 class Student(Base):
     __tablename__ = "student"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     _name: Mapped[str] = mapped_column(String)
     _matrikelnummer: Mapped[str] = mapped_column(String)
-    _email: Mapped[str] = mapped_column(String)
+    _email: Mapped[str] = mapped_column(String, unique=True)
     _password: Mapped[str] = mapped_column("password", String)
 
     _ziel_note: Mapped[float] = mapped_column(Float)
@@ -202,7 +210,7 @@ class Student(Base):
 class Hochschule(Base):
     __tablename__ = "hochschule"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    _name: Mapped[str] = mapped_column(String)
+    _name: Mapped[str] = mapped_column(String, unique=True)
 
     studenten: Mapped[List[Student]] = relationship(back_populates="hochschule")
 
