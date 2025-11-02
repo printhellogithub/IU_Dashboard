@@ -1,8 +1,11 @@
 from __future__ import annotations
+from email_validator import validate_email, EmailNotValidError
 from database import DatabaseManager
 from models import (
     Student,
 )
+
+import csv
 
 # pseudo-code: wie ich mir einen Controller OOP-based vorstellen kann:
 # class Controller:
@@ -28,17 +31,7 @@ class Controller:
             return True
         return None
 
-    def erstelle_account(
-        self,
-        name: str,
-        matrikelnummer: str,
-        email: str,
-        password: str,
-        semester_anzahl,
-        start_datum,
-        ziel_datum,
-        ziel_note,
-    ):
+    def erstelle_account(self, cache):
         # self.student = self.db.add_student(
         #     name=name,
         #     matrikelnummer=matrikelnummer,
@@ -63,14 +56,47 @@ class Controller:
             "gesamt_ects": self.student.studiengang.gesamt_ects_punkte,
         }
 
-    # ist ohne SQL!!!! -> macht nur Namen in Liste!
-    # def get_hochschulen_liste(self):
-    #     with open("data/LISTE_Hochschulen_Hochschulkompass.csv") as file:
-    #         reader = csv.DictReader(file)
-    #         hs_namen_liste = [row["Hochschulname"] for row in reader]
-    #     return hs_namen_liste
-    def get_hochschulen_liste(self):
-        return self.db.lade__alle_hochschulen()
+    # gibt dict mit Hochschul-Namen zurück, die in csv sind + id als key
+    def get_hochschulen_dict(self) -> dict[int, str]:
+        try:
+            with open("data/LISTE_Hochschulen_Hochschulkompass.csv") as file:
+                reader = csv.DictReader(file)
+                hs_namen_liste = [row["Hochschulname"] for row in reader]
+                alle_hs = self.db.lade_alle_hochschulen()
+                hs_dict = {}
+                for value in alle_hs:
+                    if value.name in hs_namen_liste:
+                        hs_dict[value.id] = value.name
+            return hs_dict
+        except FileNotFoundError:
+            return {}
+
+    def get_studiengaenge_von_hs_dict(self, hochschule_id) -> dict[int, str]:
+        hochschule = self.db.lade_hochschule_mit_id(hochschule_id)
+        if hochschule:
+            studiengaenge = self.db.lade_alle_studiengaenge_von_hochschule(hochschule)
+            studiengaenge_dict = {}
+            for studiengang in studiengaenge:
+                studiengaenge_dict[studiengang.id] = studiengang.name
+            return studiengaenge_dict
+        else:
+            return {}
+
+    def erstelle_hochschule(self, hochschul_name) -> dict[int, str]:
+        hochschule = self.db.add_hochschule(hochschul_name)
+        return {hochschule.id: hochschule.name}
+
+    def erstelle_studiengang(self, studiengang_name, gesamt_ects_punkte):
+        # To-Do
+        pass
+
+    def validate_email_for_new_account(self, value: str):
+        try:
+            emailinfo = validate_email(value, check_deliverability=True)
+            email = emailinfo.normalized
+            return email
+        except EmailNotValidError as e:
+            return e
 
     # # --- Enrollment-Operationen ---
     # def enrollments(self) -> list[Enrollment]:

@@ -146,12 +146,25 @@ class DatabaseManager:
         stmt = select(Studiengang).where(Studiengang.id == student.studiengang.id)
         return self.session.scalars(stmt).first()
 
+    def lade_alle_studiengaenge_von_hochschule(self, hochschule: Hochschule):
+        stmt = (
+            select(Studiengang)
+            .join(Hochschule)
+            .where(Studiengang.hochschule_id == hochschule.id)
+        )
+        result = self.session.scalars(stmt)
+        return result.all()
+
+    def lade_hochschule_mit_id(self, id):
+        stmt = select(Hochschule).where(Hochschule.id == id)
+        return self.session.scalars(stmt).first()
+
     # where-stmt wird fehlschlagen
     def lade_hochschule(self, student: Student):
         stmt = select(Hochschule).where(Hochschule.id == student.hochschule_id)
         return self.session.scalars(stmt).first()
 
-    def lade__alle_hochschulen(self):
+    def lade_alle_hochschulen(self):
         stmt = select(Hochschule)
         result = self.session.scalars(stmt)
         return result.all()
