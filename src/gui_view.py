@@ -10,6 +10,13 @@ from main import Controller
 
 # EXTRA-Klasse: Searchable Combobox
 class SearchableComboBox(ctk.CTkComboBox):
+    """Erbt von ComboBox: nimmt statt values, options als inputparameter.
+    Options muss type(dict) sein.
+    mit jedem Keystroke wird die Auswahl des dicts gefiltert.
+    Falls eine der Options ausgewählt wird, kann die id mit .get_id() abgerufen werden.
+    Den Wert erhält man mit .get_value()
+    """
+
     def __init__(self, master, options: dict[int, str], **kwargs):
         # dict speichern
         self._options_dict = options
@@ -47,13 +54,23 @@ class SearchableComboBox(ctk.CTkComboBox):
         return None
 
 
+# EXTRA-Klasse: EnrollmentIcon
+class EnrollmentIcon(ctk.CTkButton):
+    pass
+
+
+# EXTRA-Klasse: SemesterIcon
+class SemesterIcon(ctk.CTkButton):
+    pass
+
+
 class LoginFrame(ctk.CTkFrame):
     def __init__(self, master, controller: Controller, go_to_dashboard, go_to_new_user):
         super().__init__(master)
 
         self.controller = controller
         self.go_to_dashboard = go_to_dashboard
-        self.go_to_make_new_account = go_to_new_user
+        self.go_to_new_user = go_to_new_user
 
         ctk.CTkLabel(self, text="Login", font=ctk.CTkFont(size=18, weight="bold")).pack(
             pady=20
@@ -71,16 +88,21 @@ class LoginFrame(ctk.CTkFrame):
 
         ctk.CTkButton(self, text="Login", command=self.check_login).pack(pady=10)
 
+        self.button_to_new_user = ctk.CTkButton(
+            self, text="Neuen Account anlegen", command=self.go_to_new_user
+        )
+        self.button_to_new_user.pack(pady=20)
+
     def check_login(self):
         email = self.entry_email.get()
         password = self.entry_pw.get()
         if self.controller.login(email, password):
-            self.go_to_dashboard(email)
+            self.go_to_dashboard(self.controller)
         else:
             self.label_info.configure(text="Login fehlgeschlagen")
 
 
-class NewUserFrame(ctk.CTkFrame):
+class NewUserFrame(ctk.CTkScrollableFrame):
     def __init__(
         self, master, controller: Controller, go_to_login, go_to_StudiengangAuswahl
     ):
@@ -108,7 +130,7 @@ class NewUserFrame(ctk.CTkFrame):
 
         # Semesteranzahl
         self.label_semesteranzahl = ctk.CTkLabel(
-            self, text="Wie viele Semester hast du?"
+            self, text="Wie viele Semester hat Dein Studiengang?"
         )
         self.label_semesteranzahl.pack(pady=5)
         self.entry_semesteranzahl = ctk.CTkOptionMenu(
@@ -131,6 +153,7 @@ class NewUserFrame(ctk.CTkFrame):
         self.button_startdatum = ctk.CTkButton(
             self, text="Startdatum auswählen", command=self.start_datum_calendar
         )
+        self.button_startdatum.pack(pady=10)
 
         # Ziel-Datum
         self.selected_zieldatum = tk.StringVar(value="Noch kein Datum ausgewählt")
@@ -148,6 +171,7 @@ class NewUserFrame(ctk.CTkFrame):
         self.button_zieldatum = ctk.CTkButton(
             self, text="Zieldatum auswählen", command=self.ziel_datum_calendar
         )
+        self.button_zieldatum.pack(pady=5)
 
         # Ziel-Note
         self.entry_zielnote: float = 0.0
@@ -192,9 +216,22 @@ class NewUserFrame(ctk.CTkFrame):
         if isinstance(valid, EmailNotValidError):
             error = str(valid)
             self.label_email_not_valid.configure(text=error)
+            return
         else:
             self.selected_email = valid
 
+        # validiere user-input
+        self.list_for_validation = [
+            self.entry_pw.get(),
+            self.entry_name.get(),
+            self.entry_matrikelnummer.get(),
+            self.entry_semesteranzahl.get(),
+            self.search_combo.get_value(),
+        ]
+
+        if not self.validate_entries(liste=self.list_for_validation):
+            return
+        # user-input validiert, speicher eingaben
         self.selected_password = self.entry_pw.get()
         self.selected_name = self.entry_name.get()
         self.selected_matrikelnummer = self.entry_matrikelnummer.get()
@@ -204,7 +241,7 @@ class NewUserFrame(ctk.CTkFrame):
         self.selected_hochschule_id = self.search_combo.get_id()
 
         # Lege hochschule an, falls noch nicht in db
-        if self.selected_hochschule_id == {}:
+        if self.selected_hochschule_id is None:
             hochschule = self.controller.erstelle_hochschule(
                 self.selected_hochschule_name
             )
@@ -216,6 +253,7 @@ class NewUserFrame(ctk.CTkFrame):
                         "Datenbankrückgabe entspricht nicht Eingabewert: Hochschule"
                     )
 
+        # lege cache an, um über Daten in anderem Frame zu verfügen
         cache = {
             "email": self.selected_email,
             "password": self.selected_password,
@@ -228,9 +266,8 @@ class NewUserFrame(ctk.CTkFrame):
             "hochschulname": self.selected_hochschule_name,
             "hochschulid": self.selected_hochschule_id,
         }
-
-        if self.validate_entries(cache=cache):
-            self.go_to_StudiengangAuswahl(cache=cache)
+        # Zur Studiengangauswahl
+        self.go_to_StudiengangAuswahl(cache=cache)
 
     def start_datum_calendar(self):
         top = ctk.CTkToplevel(self)
@@ -245,7 +282,7 @@ class NewUserFrame(ctk.CTkFrame):
             date_patern="dd.mm.y",
             mindate=mindate_start,
             maxdate=maxdate_start,
-            disabledforeground="red",
+            # disabledforeground="red",
             showweeknumbers=False,
         )
 
@@ -271,7 +308,7 @@ class NewUserFrame(ctk.CTkFrame):
             date_patern="dd.mm.y",
             mindate=mindate_ziel,
             maxdate=maxdate_ziel,
-            disabledforeground="red",
+            # disabledforeground="red",
             showweeknumbers=False,
         )
 
@@ -289,13 +326,14 @@ class NewUserFrame(ctk.CTkFrame):
         self.label_zielnote.configure(text=f"Deine Zielnote: {round(float(value), 1)}")
 
     # checken ob alle Felder ausgefüllt sind!!!
-    def validate_entries(self, cache):
-        for value in cache:
+    def validate_entries(self, liste):
+        for value in liste:
             if str(value).strip() == "":
                 self.label_leere_felder.configure(text="Etwas ist nicht ausgefüllt.")
                 return False
             else:
-                return True
+                pass
+        return True
 
 
 class StudiengangAuswahlFrame(ctk.CTkFrame):
@@ -363,33 +401,83 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
             return False
 
     def on_submit(self):
+        # validiere ECTS-Feld
         if self.validate_ects(self.entry_ects.get().strip()):
             self.selected_ects = int(self.entry_ects.get().strip())
         else:
             return
 
-        self.selected_studiengang = self.search_combo_studiengang
-        if self.selected_studiengang.get().strip() == "":
-            self.label_leere_felder.configure(text="Etwas ist nicht ausgefüllt.")
-        else:
-            self.cache["studiengang_ects"] = self.selected_ects
-            self.cache["studiengang_name"] = self.selected_studiengang
+        # bekomme values von searchableCombobox
+        self.selected_studiengang_name = self.search_combo_studiengang.get_value()
+        self.selected_studiengang_id = self.search_combo_studiengang.get_id()
 
-            self.controller.erstelle_account(self.cache)
-            self.controller.erstelle_studiengang(
-                studiengang_name=self.selected_studiengang,
+        # checke ob Feld leer oder fange ab,
+        # falls keine id aus searchableComboBox
+        if self.selected_studiengang_name.strip() == "":
+            self.label_leere_felder.configure(text="Etwas ist nicht ausgefüllt.")
+            return
+
+        if self.selected_studiengang_id is None:
+            studiengang = self.controller.erstelle_studiengang(
+                studiengang_name=self.selected_studiengang_name,
                 gesamt_ects_punkte=self.selected_ects,
             )
+            for k, v in studiengang.items():
+                if v == self.selected_studiengang_name:
+                    self.selected_studiengang_id = k
+                else:
+                    raise ValueError(
+                        "Datenbankrückgabe entspricht nicht Eingabewert: Hochschule"
+                    )
 
-            # was ist mit Beziehungen? Studiengang <-> Student <-> Hochschule <-> Studiengang
-            # welche parameter sollte controller.erstelle_studiengang einfordern?
+        # Fuege values zum Cache hinzu
+        self.cache["studiengang_ects"] = self.selected_ects
+        self.cache["studiengang_name"] = self.selected_studiengang_name
+        self.cache["studiengang_id"] = self.selected_studiengang_id
 
-            self.go_to_dashboard
+        # erstelle Account
+        self.controller.erstelle_account(self.cache)
+        # wechsle Fenster
+        self.go_to_dashboard(self.controller)
+
+        # TODO
+        # ändere new_user_frame zu Grid!
+
+        # SearchableComboBox funktioniert nicht, checke ob es an dict liegt?!
+        # außerdem zeigt default CTKComboBox an, checke ob hochschulen in sql vorliegen
+        # bzw. ob csv-reader funktioniert.
 
 
 class DashboardFrame(ctk.CTkFrame):
-    def __init__(self, master, controller: Controller, user, go_to_login):
+    def __init__(
+        self,
+        master,
+        controller: Controller,
+        go_to_login,
+        go_to_enrollement,
+        go_to_settings,
+    ):
         super().__init__(master)
+        # TODO
+        self.controller = controller
+        self.go_to_login = go_to_login
+        self.go_to_enrollment = go_to_enrollement
+        self.go_to_settings = go_to_settings
+
+        # Grid / Place ausprobieren
+        # Enrollment-Test hinzuziehen.
+
+
+class EnrollmentFrame(ctk.CTkFrame):
+    def __init__(self, master, controller: Controller, go_to_dashboard):
+        super().__init__(master)
+        # TODO
+
+
+class SettingsFrame(ctk.CTkFrame):
+    def __init__(self, master, controller: Controller, go_to_dashboard):
+        super().__init__(master)
+        # TODO
 
 
 class App(ctk.CTk):
@@ -442,7 +530,27 @@ class App(ctk.CTk):
         if self.current_frame:
             self.current_frame.destroy()
         self.current_frame = DashboardFrame(
-            self, controller=self.controller, user=user, go_to_login=self.show_login
+            self,
+            controller=self.controller,
+            go_to_login=self.show_login,
+            go_to_enrollement=self.show_enrollment,
+            go_to_settings=self.show_settings,
+        )
+        self.current_frame.pack(fill="both", expand=True)
+
+    def show_enrollment(self):
+        if self.current_frame:
+            self.current_frame.destroy()
+        self.current_frame = EnrollmentFrame(
+            self, controller=self.controller, go_to_dashboard=self.show_dashboard
+        )
+        self.current_frame.pack(fill="both", expand=True)
+
+    def show_settings(self):
+        if self.current_frame:
+            self.current_frame.destroy()
+        self.current_frame = SettingsFrame(
+            self, controller=self.controller, go_to_dashboard=self.show_dashboard
         )
         self.current_frame.pack(fill="both", expand=True)
 

@@ -29,7 +29,7 @@ class DatabaseManager:
         self,
         name: str,
         matrikelnummer: str,
-        email_address: str,
+        email: str,
         password: str,
         semester_anzahl: int,
         start_datum,
@@ -39,7 +39,7 @@ class DatabaseManager:
         student = Student(
             name=name,
             matrikelnummer=matrikelnummer,
-            email=email_address,
+            email=email,
             password=password,
             semester_anzahl=semester_anzahl,
             start_datum=start_datum,
@@ -80,8 +80,8 @@ class DatabaseManager:
         self.session.commit()
         return modul
 
-    def add_semester(self, nummer, beginn, ende):
-        semester = Semester(nummer=nummer, beginn=beginn, ende=ende)
+    def add_semester(self, student: Student, nummer, beginn, ende):
+        semester = Semester(nummer=nummer, beginn=beginn, ende=ende, student=student)
         self.session.add(semester)
         self.session.commit()
         return semester
@@ -115,6 +115,19 @@ class DatabaseManager:
         stmt = select(Student).where(Student.email == email)
         return self.session.scalars(stmt).first()
 
+    def lade_student_mit_beziehungen(self, email: str) -> Student | None:
+        stmt = (
+            select(Student)
+            .options(
+                selectinload(Student.hochschule),
+                selectinload(Student.studiengang),
+                selectinload(Student.enrollments),
+                selectinload(Student.semester),
+            )
+            .where(Student.email == email)
+        )
+        return self.session.scalar(stmt)
+
     def lade_enrollment(self, student: Student, kurs: Kurs) -> Enrollment | None:
         stmt = (
             select(Enrollment)
@@ -144,6 +157,11 @@ class DatabaseManager:
     # where-stmt wird fehlschlagen
     def lade_studiengang(self, student: Student):
         stmt = select(Studiengang).where(Studiengang.id == student.studiengang.id)
+        return self.session.scalars(stmt).first()
+
+    def lade_studiengang_mit_id(self, id):
+        self.id = id
+        stmt = select(Studiengang).where(Studiengang.id == self.id)
         return self.session.scalars(stmt).first()
 
     def lade_alle_studiengaenge_von_hochschule(self, hochschule: Hochschule):
