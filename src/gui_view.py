@@ -870,6 +870,8 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         # ---NOTEN-FRAME---
         # TODO
 
+        # TODO TESTPROGRAMME AUS GIT ENTFERNEN.
+
 
 class EnrollmentFrame(ctk.CTkFrame):
     def __init__(self, master, controller: Controller, go_to_dashboard):
