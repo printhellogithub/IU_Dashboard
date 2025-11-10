@@ -1,7 +1,7 @@
 import os
 
 from database import DatabaseManager
-from models_test import Status, Student, Enrollment, EnrollmentDTO
+from models_test import Status, Student, EnrollmentDTO
 
 from email_validator import validate_email, EmailNotValidError
 from rich.table import Table
@@ -19,13 +19,13 @@ class DashboardCLI:
         """Programm wird gestartet"""
         self.login()
         while True:
-            os.system("clear") # WINDOWS!!! -> "cls"
+            os.system("clear")  # WINDOWS!!! -> "cls"
             self.show_enrollments()
             self.choose_action()
 
     def greet(self, student):
         print(f"Hallo, {student.name}.")
-        
+
     def login(self):
         while True:
             raw_email = input("Deine Email: ")
@@ -34,7 +34,7 @@ class DashboardCLI:
                 break
             except EmailNotValidError:
                 print("Ungültige Email")
-        
+
         while True:
             password = input("Passwort: ")
             student = self.db.lade_student(email)
@@ -58,7 +58,7 @@ class DashboardCLI:
             name=name,
             matrikelnummer=matrikelnummer,
             email_address=email,
-            password=password
+            password=password,
         )
         self.greet(self.student)
 
@@ -86,7 +86,6 @@ class DashboardCLI:
             console.print(table)
         else:
             console.print("[bold red]Noch keine Kurse. [/bold red]")
-
 
     def choose_action(self):
         print("\n1: Kurs hinzufügen    2: Status ändern    3: Beenden\n")
@@ -119,7 +118,7 @@ class DashboardCLI:
         if not enrollments:
             print("Keine Kurse vorhanden.")
             return
-        
+
         while True:
             try:
                 kursauswahl = int(input("Wähle Kursnummer: ")) - 1
@@ -130,16 +129,20 @@ class DashboardCLI:
 
         print("Neuer Status: 1=OFFEN, 2=IN_BEARBEITUNG, 3=ABGESCHLOSSEN\n")
         statusauswahl = input("... ")
-        mapping = {"1": Status.OFFEN, "2": Status.IN_BEARBEITUNG, "3": Status.ABGESCHLOSSEN}
+        mapping = {
+            "1": Status.OFFEN,
+            "2": Status.IN_BEARBEITUNG,
+            "3": Status.ABGESCHLOSSEN,
+        }
         neuer_status = mapping.get(statusauswahl)
 
         if neuer_status:
             self.db.change_enrollment_status(enrollment, neuer_status)
-            print(f"Status geändert: {enrollment.kurs.kurs_name} -> {neuer_status.name}")
+            print(
+                f"Status geändert: {enrollment.kurs.kurs_name} -> {neuer_status.name}"
+            )
 
 
 if __name__ == "__main__":
     app = DashboardCLI()
     app.run()
-
-        

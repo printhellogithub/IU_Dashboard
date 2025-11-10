@@ -55,7 +55,9 @@ class Student(Base):
     _ziel_note: Mapped[float] = mapped_column(Float)
     _start_datum: Mapped[date] = mapped_column(Date)
     _ziel_datum: Mapped[date] = mapped_column(Date)
-    _exmatrikulationsdatum: Mapped[date] = mapped_column(Date)
+    _exmatrikulationsdatum: Mapped[Optional[date]] = mapped_column(
+        Date, nullable=True, default=None
+    )
 
     hochschule_id = mapped_column(ForeignKey("hochschule.id"))
     hochschule: Mapped[Hochschule] = relationship(back_populates="studenten")
@@ -300,7 +302,7 @@ class Kurs(Base):
     _ects_punkte: Mapped[int] = mapped_column(Integer)
 
     modul_id = mapped_column(ForeignKey("modul.id"))
-    modul: Mapped[Modul] = relationship(back_populates="kurs")
+    modul: Mapped[Modul] = relationship(back_populates="kurse")
 
     enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="kurs")
 
@@ -332,7 +334,7 @@ class Kurs(Base):
 # Enrollment
 class Enrollment(Base):
     __tablename__ = "enrollment"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, unique=True)
     _einschreibe_datum: Mapped[date] = mapped_column(Date)
     _end_datum: Mapped[date] = mapped_column(Date)
     _status: Mapped[EnrollmentStatus] = mapped_column(SQLEnum(EnrollmentStatus))
@@ -389,6 +391,8 @@ class Enrollment(Base):
                 and self.status is not EnrollmentStatus.ABGESCHLOSSEN
             ):
                 self.status = EnrollmentStatus.NICHT_BESTANDEN
+        else:
+            self.status = EnrollmentStatus.IN_BEARBEITUNG
 
 
 # Prüfungsleistung

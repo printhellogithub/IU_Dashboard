@@ -198,6 +198,11 @@ class DatabaseManager:
         )
         return list(self.session.scalars(stmt))
 
+    # Notwendig?!?
+    def lade_enrollment_mit_id(self, id: int):
+        stmt = select(Enrollment).where(Enrollment.id == id)
+        return self.session.scalars(stmt).first()
+
     def lade_kurse_von_student(self, student: Student) -> list[Kurs]:
         stmt = select(Kurs).join(Enrollment).where(Enrollment.student_id == student.id)
         return list(self.session.scalars(stmt))

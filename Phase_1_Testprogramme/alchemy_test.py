@@ -14,7 +14,7 @@ with engine.connect() as conn:
         [{"x": 1, "y": 1}, {"x": 2, "y": 4}],
     )
     conn.commit()
-    
+
 
 # "begin once"
 with engine.begin() as conn:
@@ -29,7 +29,7 @@ with engine.connect() as conn:
     for row in result:
         print(f"x: {row.x}  y: {row.y}")
 
-    
+
 # ORM
 from sqlalchemy.orm import Session
 
@@ -48,36 +48,39 @@ with Session(engine) as session:
     session.commit()
 
 from sqlalchemy import MetaData
+
 metadata_obj = MetaData()
 
-from sqlalchemy import Table, Column, Integer, String
+from sqlalchemy import String
 # user_table = Table(
 #    "user_account",
 #    metadata_obj,
 #    Column("id", Integer, primary_key=True),
 #    Column("name", String(30)),
 #    Column("fullname", String),
-#)
+# )
 
 # from sqlalchemy import ForeignKey
-# address_table = Table(# 
+# address_table = Table(#
 #    "address",
 #    metadata_obj,
 #    Column("id", Integer, primary_key=True),
 #    Column("user_id", ForeignKey("user_account.id"), nullable=False),
 #    Column("email_address", String, nullable=False),
-#)
-# 
+# )
+#
 # metadata_obj.create_all(engine)
 
-# ORM 
+# ORM
 
 from sqlalchemy.orm import DeclarativeBase
 from typing import List, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class User(Base):
     __tablename__ = "user_account"
@@ -91,18 +94,18 @@ class User(Base):
     def __repr__(self) -> str:
         return f"User(id={self.id!r}, name={self.name!r}, fullname={self.fullname!r})"
 
+
 class Address(Base):
     __tablename__ = "address"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email_address: Mapped[str]
-    user_id = mapped_column(ForeignKey("user_account.id"),nullable=False)
+    user_id = mapped_column(ForeignKey("user_account.id"), nullable=False)
 
     user: Mapped[User] = relationship(back_populates="addresses")
 
     def __repr__(self):
         return f"Address(id={self.id!r}, email_address={self.email_address!r})"
-    
-Base.metadata.create_all(engine)
 
-    
+
+Base.metadata.create_all(engine)

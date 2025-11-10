@@ -4,8 +4,10 @@ from database import DatabaseManager
 from models import (
     Student,
 )
+from hochschulen import hs_dict
 
-import csv
+# import csv
+import datetime
 from dateutil.relativedelta import relativedelta
 
 
@@ -14,9 +16,15 @@ class Controller:
         self.db = DatabaseManager()
         self.student: Student | None = None
 
+        self.erstelle_hochschulen_von_hs_dict()
+
     # --- Account & Login ---
     def login(self, email: str, password: str):
-        student = self.db.lade_student_mit_beziehungen(email)
+        verified_email = self.validate_email_for_login(email)
+        if isinstance(verified_email, EmailNotValidError):
+            return False
+
+        student = self.db.lade_student_mit_beziehungen(verified_email)
         if student and student.verify_password(password):
             self.student = student
             return True
@@ -25,14 +33,18 @@ class Controller:
 
     def erstelle_account(self, cache: dict):
         self.cache = cache
+
+        start_datum = datetime.date.fromisoformat(cache["startdatum"])
+        zieldatum = datetime.date.fromisoformat(cache["zieldatum"])
+
         self.student = self.db.add_student(
             name=self.cache["name"],
             matrikelnummer=self.cache["matrikelnummer"],
             email=self.cache["email"],
             password=self.cache["password"],
             semester_anzahl=self.cache["semesteranzahl"],
-            start_datum=self.cache["startdatum"],
-            ziel_datum=self.cache["zieldatum"],
+            start_datum=start_datum,
+            ziel_datum=zieldatum,
             ziel_note=self.cache["zielnote"],
         )
         self.erstelle_semester_fuer_student(self.student)
@@ -47,10 +59,10 @@ class Controller:
 
     # Relationships bei neuem Account
     def add_hochschule_zu_student(self, student: Student, cache):
-        hs = self.db.lade_hochschule_mit_id(int(cache["hochschuleid"]))
+        hs = self.db.lade_hochschule_mit_id(int(cache["hochschulid"]))
         if hs is None:
             raise ValueError(
-                f"Hochschule ({cache['hochschuleid']}) wurde nicht gefunden!"
+                f"Hochschule ({cache['hochschulid']}) wurde nicht gefunden!"
             )
         student.hochschule = hs
         # session.flush() ?
@@ -65,11 +77,11 @@ class Controller:
         # session.flush()
 
     def add_studiengang_zu_hochschule(self, cache):
-        hs = self.db.lade_hochschule_mit_id(int(cache["hochschuleid"]))
+        hs = self.db.lade_hochschule_mit_id(int(cache["hochschulid"]))
         sg = self.db.lade_studiengang_mit_id(int(cache["studiengang_id"]))
         if not hs:
             raise ValueError(
-                f"Hochschule ({cache['hochschuleid']}) wurde nicht gefunden! command: controller.add_studiengang_zu_hochschule"
+                f"Hochschule ({cache['hochschulid']}) wurde nicht gefunden! command: controller.add_studiengang_zu_hochschule"
             )
         if not sg:
             raise ValueError(
@@ -90,21 +102,23 @@ class Controller:
         }
         # TODO: unvollständig, muss neu gecoded werden
 
+    def erstelle_hochschulen_von_hs_dict(self):
+        hochschul_namen = {h.name for h in self.db.lade_alle_hochschulen()}
+        for name in hs_dict.values():
+            if not name:
+                continue
+            if name not in hochschul_namen:
+                self.erstelle_hochschule(hochschul_name=name)
+
     # gibt dict mit Hochschul-Namen zurück, die in csv sind + id als key
     def get_hochschulen_dict(self) -> dict[int, str]:
-        try:
-            with open("data/LISTE_Hochschulen_Hochschulkompass.csv") as file:
-                reader = csv.DictReader(file)
-                hs_namen_liste = [row["Hochschulname"] for row in reader]
-                alle_hs = self.db.lade_alle_hochschulen()
-                hs_dict = {}
-                for value in alle_hs:
-                    if value.name in hs_namen_liste:
-                        hs_dict[value.id] = value.name
-            return hs_dict
-        except FileNotFoundError:
-            return {}
-        # TODO: teste diese funktion!
+        hochschulen = self.db.lade_alle_hochschulen()
+        hochschulen_dict: dict[int, str] = {}
+        hs_namen_set = set(hs_dict.values())
+        for hochschule in hochschulen:
+            if hochschule.name in hs_namen_set:
+                hochschulen_dict[hochschule.id] = hochschule.name
+        return hochschulen_dict
 
     def get_studiengaenge_von_hs_dict(self, hochschule_id) -> dict[int, str]:
         hochschule = self.db.lade_hochschule_mit_id(hochschule_id)
@@ -115,7 +129,7 @@ class Controller:
                 studiengaenge_dict[studiengang.id] = studiengang.name
             return studiengaenge_dict
         else:
-            return {}
+            return {0: ""}
 
     def erstelle_hochschule(self, hochschul_name) -> dict[int, str]:
         hochschule = self.db.add_hochschule(hochschul_name)
@@ -126,8 +140,12 @@ class Controller:
         return {studiengang.id: studiengang.name}
 
     def erstelle_semester_fuer_student(self, student: Student):
-        """Erstellt aus Startdatum und Semesteranzahl einzelne Semesterobjekte"""
-        # TODO
+        """Erstellt aus Startdatum und Semesteranzahl einzelne Semesterobjekte."""
+
+        assert isinstance(student.start_datum, datetime.date)
+        assert isinstance(student.ziel_datum, datetime.date)
+        assert isinstance(student.semester_anzahl, int) and student.semester_anzahl > 0
+
         for i in range(student.semester_anzahl):
             beginn = student.start_datum + relativedelta(months=6 * i)
             ende = (beginn + relativedelta(months=6)) - relativedelta(days=1)
@@ -143,6 +161,22 @@ class Controller:
             return email
         except EmailNotValidError as e:
             return e
+
+    def validate_email_for_login(self, value: str):
+        try:
+            emailinfo = validate_email(value, check_deliverability=False)
+            email = emailinfo.normalized
+            return email
+        except EmailNotValidError as e:
+            return e
+
+    def get_enrollment_status(self, enrollment_id: int) -> str | None:
+        if self.student:
+            for enrollment in self.student.enrollments:
+                if enrollment_id == enrollment.id:
+                    return str(enrollment.status)
+        else:
+            return None
 
     # # --- Enrollment-Operationen ---
     # def enrollments(self) -> list[Enrollment]:
