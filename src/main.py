@@ -1,9 +1,7 @@
 from __future__ import annotations
 from email_validator import validate_email, EmailNotValidError
 from database import DatabaseManager
-from models import (
-    Student,
-)
+from models import Enrollment, EnrollmentStatus, Student, Modul
 from hochschulen import hs_dict
 
 # import csv
@@ -95,13 +93,155 @@ class Controller:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         return {
-            "email": self.student.email,
             "name": self.student.name,
-            "hochschule": self.student.hochschule.name,
             "studiengang": self.student.studiengang.name,
+            "hochschule": self.student.hochschule.name,
+            "startdatum": self.student.start_datum,
+            "zieldatum": self.student.ziel_datum,
+            "zielnote": self.student.ziel_note,
+            "modulanzahl": self.student.modul_anzahl,
             "gesamt_ects": self.student.studiengang.gesamt_ects_punkte,
+            "semester": self.get_list_of_semester(),
+            "enrollments": self.get_list_of_enrollments(),
+            "heute": datetime.date.today(),
+            "time_progress": self.get_time_progress(),
+            "abgeschlossen": self.get_number_of_enrollments_with_status(
+                EnrollmentStatus.ABGESCHLOSSEN
+            ),
+            "in_bearbeitung": self.get_number_of_enrollments_with_status(
+                EnrollmentStatus.IN_BEARBEITUNG
+            ),
+            "ausstehend": self.get_number_of_enrollments_with_status_ausstehend(),
+            "erarbeitete_ects": self.get_erarbeitete_ects(),
+            "notendurchschnitt": self.get_notendurchschnitt(),
         }
-        # TODO: unvollständig, muss neu gecoded werden
+
+    def get_time_progress(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        dauer = (self.student.ziel_datum - self.student.start_datum).days
+        bisher = (datetime.date.today() - self.student.start_datum).days
+        progress = round(max(0, min(bisher / dauer, 1)), 3)
+        return progress
+
+    def get_number_of_enrollments_with_status(self, status: EnrollmentStatus) -> int:
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        counter = 0
+        for enrollment in self.student.enrollments:
+            if enrollment.check_status() == status:
+                counter += 1
+            else:
+                continue
+        return counter
+
+    def get_number_of_enrollments_with_status_ausstehend(self) -> int:
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        ausstehende = self.student.modul_anzahl - (
+            self.get_number_of_enrollments_with_status(EnrollmentStatus.ABGESCHLOSSEN)
+            + self.get_number_of_enrollments_with_status(
+                EnrollmentStatus.IN_BEARBEITUNG
+            )
+            + self.get_number_of_enrollments_with_status(
+                EnrollmentStatus.NICHT_BESTANDEN
+            )
+        )
+        return ausstehende
+
+    def get_erarbeitete_ects(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        ects = 0
+        for enrollment in self.student.enrollments:
+            if enrollment.check_status() == EnrollmentStatus.ABGESCHLOSSEN:
+                ects += enrollment.modul.ects_punkte
+            else:
+                continue
+        return ects
+
+    def get_notendurchschnitt(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        notensumme = 0
+        for enrollment in self.student.enrollments:
+            if enrollment.check_status() == EnrollmentStatus.ABGESCHLOSSEN:
+                notensumme += enrollment.berechne_enrollment_note()  # type: ignore
+            else:
+                continue
+        return notensumme / self.get_number_of_enrollments_with_status(
+            EnrollmentStatus.ABGESCHLOSSEN
+        )
+
+    def get_list_of_semester(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        semester_list = []
+        semester_dict = {}
+        for semester in self.student.semester:
+            semester_dict = {
+                "id": semester.id,
+                "nummer": semester.nummer,
+                "beginn": semester.beginn,
+                "ende": semester.ende,
+                "status": str(semester.get_semester_status()),
+            }
+            semester_list.append(semester_dict)
+        return semester_list
+
+    def get_list_of_enrollments(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        enrollment_list = []
+        enrollment_dict = {}
+        for enrollment in self.student.enrollments:
+            enrollment_dict = {
+                "id": enrollment.id,
+                "einschreibe_datum": enrollment.einschreibe_datum,
+                "end_datum": enrollment.end_datum,
+                "status": enrollment.status,
+                "modul_id": enrollment.modul_id,
+                "modul_name": enrollment.modul.name,
+                "modul_code": enrollment.modul.modulcode,
+                "modul_ects": enrollment.modul.ects_punkte,
+                "kurse": self.get_list_of_kurse(enrollment.modul),
+                "anzahl_pruefungsleistungen": enrollment.anzahl_pruefungsleistungen,
+                "pruefungsleistungen": self.get_list_of_pruefungsleistungen(enrollment),
+            }
+            enrollment_list.append(enrollment_dict)
+        return enrollment_list
+
+    def get_list_of_kurse(self, modul: Modul):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        kurse_list = []
+        kurse_dict = {}
+        for kurs in modul.kurse:
+            kurse_dict = {
+                "id": kurs.id,
+                "name": kurs.name,
+                "nummer": kurs.nummer,
+            }
+            kurse_list.append(kurse_dict)
+        return kurse_list
+
+    def get_list_of_pruefungsleistungen(self, enrollment: Enrollment):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        pruefungsleistungen_list = []
+        pruefungsleistungen_dict = {}
+        for pl in enrollment.pruefungsleistungen:
+            pruefungsleistungen_dict = {
+                "id": pl.id,
+                "teilpruefung": pl.teilpruefung,
+                "teilpruefung_gewicht": pl.teilpruefung_gewicht,
+                "versuch": pl.versuch,
+                "note": pl.note,
+                "datum": pl.datum,
+                "ist_bestanden": pl.ist_bestanden(),
+            }
+            pruefungsleistungen_list.append(pruefungsleistungen_dict)
+        return pruefungsleistungen_list
 
     def erstelle_hochschulen_von_hs_dict(self):
         hochschul_namen = {h.name for h in self.db.lade_alle_hochschulen()}

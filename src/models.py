@@ -308,6 +308,14 @@ class Modul(Base):
         self._name = value
 
     @hybrid_property
+    def modulcode(self):  # type: ignore[reportRedeclaration]
+        return self._modulcode
+
+    @modulcode.setter
+    def modulcode(self, value: str):
+        self._modulcode = value
+
+    @hybrid_property
     def ects_punkte(self):  # type: ignore[reportRedeclaration]
         return self._ects_punkte
 
@@ -348,7 +356,9 @@ class Enrollment(Base):
     __tablename__ = "enrollment"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, unique=True)
     _einschreibe_datum: Mapped[date] = mapped_column(Date)
-    _end_datum: Mapped[date] = mapped_column(Date)
+    _end_datum: Mapped[Optional[date]] = mapped_column(
+        Date, nullable=True, default=None
+    )
     _status: Mapped[EnrollmentStatus] = mapped_column(SQLEnum(EnrollmentStatus))
 
     student_id = mapped_column(ForeignKey("student.id"))
@@ -431,16 +441,16 @@ class Enrollment(Base):
 
     def berechne_enrollment_note(self) -> float | None:
         if self.pruefungsleistungen:
+            # noten_summe wird gewichtet -> durchschnitt
             noten_summe = 0
-            bestandene_pl = 0
             for pruefungsleistung in self.pruefungsleistungen:
                 if pruefungsleistung.ist_bestanden():
-                    noten_summe += pruefungsleistung.note
-                    bestandene_pl += 1
+                    noten_summe += (
+                        pruefungsleistung.note * pruefungsleistung.teilpruefung_gewicht
+                    )
                 else:
                     continue
-            ds = noten_summe / bestandene_pl
-            enrollment_note = float(round(ds, 2))
+            enrollment_note = float(round(noten_summe, 2))
             return enrollment_note
         else:
             return None

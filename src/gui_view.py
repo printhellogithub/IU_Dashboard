@@ -688,6 +688,10 @@ class DashboardFrame(ctk.CTkFrame):
         self.go_to_enrollment = go_to_enrollement
         self.go_to_settings = go_to_settings
 
+        # DATEN BEKOMMEN
+        self.data = self.controller.load_dashboard_data()
+
+        # FONTS
         H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
         H1notitalic = ctk.CTkFont(
             family="Segoe UI", size=84, weight="normal", slant="roman"
