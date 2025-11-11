@@ -357,6 +357,8 @@ class Enrollment(Base):
     modul_id = mapped_column(ForeignKey("modul.id"))
     modul: Mapped["Modul"] = relationship(back_populates="enrollments")
 
+    # Möglichkeit mehrerer Teilprüfungen abdecken!
+    _anzahl_pruefungsleistungen: Mapped[int] = mapped_column(Integer)
     pruefungsleistungen: Mapped[List[Pruefungsleistung]] = relationship(
         back_populates="enrollment"
     )
@@ -385,34 +387,75 @@ class Enrollment(Base):
     def status(self, value: EnrollmentStatus):
         self._status = value
 
-    def add_pruefungsleistung(self, note: float, datum: date):
-        if len(self.pruefungsleistungen) > 3:
-            raise ValueError(
-                "Ein Enrollment darf höchstens 3 Prüfungsleistungen haben."
+    @hybrid_property
+    def anzahl_pruefungsleistungen(self):  # type: ignore[reportRedeclaration]
+        return self._anzahl_pruefungsleistungen
+
+    @anzahl_pruefungsleistungen.setter
+    def anzahl_pruefungsleistungen(self, value):
+        self._anzahl_pruefungsleistungen = value
+
+    def add_pruefungsleistung(
+        self, teilpruefung, teilpruefung_gewicht, versuch, note: float, datum: date
+    ):
+        self.pruefungsleistungen.append(
+            Pruefungsleistung(
+                teilpruefung=teilpruefung,
+                teilpruefung_gewicht=teilpruefung_gewicht,
+                versuch=versuch,
+                note=note,
+                datum=datum,
             )
-        versuch = int(len(self.pruefungsleistungen) + 1)
-        self.pruefungsleistungen.append(Pruefungsleistung(versuch, note, datum))
+        )
         self.check_status()
 
     def check_status(self):
+        counter = 0
         if self.pruefungsleistungen:
             for pruefungsleistung in self.pruefungsleistungen:
                 if pruefungsleistung.ist_bestanden():
-                    self.status = EnrollmentStatus.ABGESCHLOSSEN
-            if (
-                len(self.pruefungsleistungen) == 3
-                and self.status is not EnrollmentStatus.ABGESCHLOSSEN
-            ):
-                self.status = EnrollmentStatus.NICHT_BESTANDEN
+                    counter += 1
+                    if counter == self.anzahl_pruefungsleistungen:
+                        self.status = EnrollmentStatus.ABGESCHLOSSEN
+                        break
+                    else:
+                        continue
+                elif pruefungsleistung.versuch == 3:
+                    self.status = EnrollmentStatus.NICHT_BESTANDEN
+                    break
+                else:
+                    self.status = EnrollmentStatus.IN_BEARBEITUNG
+                    continue
         else:
             self.status = EnrollmentStatus.IN_BEARBEITUNG
+
+    def berechne_enrollment_note(self) -> float | None:
+        if self.pruefungsleistungen:
+            noten_summe = 0
+            bestandene_pl = 0
+            for pruefungsleistung in self.pruefungsleistungen:
+                if pruefungsleistung.ist_bestanden():
+                    noten_summe += pruefungsleistung.note
+                    bestandene_pl += 1
+                else:
+                    continue
+            ds = noten_summe / bestandene_pl
+            enrollment_note = float(round(ds, 2))
+            return enrollment_note
+        else:
+            return None
 
 
 # Prüfungsleistung
 class Pruefungsleistung(Base):
     __tablename__ = "pruefungsleistung"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # teilpruefung nr. von insgesamt enrollment.anzahl_pruefungsleistunen
+    _teilpruefung: Mapped[int] = mapped_column(Integer)
+    # bei mehreren Teilprüfungen -> Gewicht pro note
+    _teilpruefung_gewicht: Mapped[float] = mapped_column(Float)
     _versuch: Mapped[int] = mapped_column(Integer)
+
     _note: Mapped[float] = mapped_column(Float)
     _datum: Mapped[date] = mapped_column(Date)
 
@@ -420,6 +463,22 @@ class Pruefungsleistung(Base):
         ForeignKey("enrollment.id"), nullable=False
     )
     enrollment: Mapped[Enrollment] = relationship(back_populates="pruefungsleistungen")
+
+    @hybrid_property
+    def teilpruefung(self):  # type: ignore[reportRedeclaration]
+        return self._teilpruefung
+
+    @teilpruefung.setter
+    def teilpruefung(self, value: int):
+        self._teilpruefung = value
+
+    @hybrid_property
+    def teilpruefung_gewicht(self):  # type: ignore[reportRedeclaration]
+        return self._teilpruefung_gewicht
+
+    @teilpruefung_gewicht.setter
+    def teilpruefung_gewicht(self, value: float):
+        self._teilpruefung_gewicht = value
 
     @hybrid_property
     def versuch(self):  # type: ignore[reportRedeclaration]
@@ -445,7 +504,9 @@ class Pruefungsleistung(Base):
     def datum(self, value: date):
         self._datum = value
 
-    def __init__(self, versuch, note, datum):
+    def __init__(self, teilpruefung, teilpruefung_gewicht, versuch, note, datum):
+        self.teilpruefung = teilpruefung
+        self.teilpruefung_gewicht = teilpruefung_gewicht
         self.versuch = versuch
         self.note = note
         self.datum = datum

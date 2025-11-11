@@ -54,30 +54,46 @@ class DatabaseManager:
         return student
 
     def add_enrollment(
-        self, student: Student, kurs: Kurs, status: EnrollmentStatus
+        self, student: Student, modul: Modul, status: EnrollmentStatus
     ) -> Enrollment:
-        enrollment = Enrollment(student=student, kurs=kurs, status=status)
+        enrollment = Enrollment(student=student, modul=modul, status=status)
         self.session.add(enrollment)
         self.session.commit()
         # session.refresh(enrollment)
         return enrollment
 
     # siehe models.py -> class Enrollment -> add_pruefungsleistung
-    def add_pruefungsleistung(self, versuch, note, datum):
-        pruefungsleistung = Pruefungsleistung(versuch=versuch, note=note, datum=datum)
+    def add_pruefungsleistung(
+        self, teilpruefung, teilpruefung_gewicht, versuch, note, datum
+    ):
+        pruefungsleistung = Pruefungsleistung(
+            teilpruefung=teilpruefung,
+            teilpruefung_gewicht=teilpruefung_gewicht,
+            versuch=versuch,
+            note=note,
+            datum=datum,
+        )
         self.session.add(pruefungsleistung)
         self.session.commit()
         return pruefungsleistung
 
-    def add_kurs(self, name: str, nummer: str, ects_punkte: int) -> Kurs:
-        kurs = Kurs(name=name, nummer=nummer, ects_punkte=ects_punkte)
+    def add_kurs(self, name: str, nummer: str) -> Kurs:
+        kurs = Kurs(name=name, nummer=nummer)
         self.session.add(kurs)
         self.session.commit()
         # session.refresh(kurs)
         return kurs
 
-    def add_modul(self, name: str, studiengang: Studiengang, kurs: Kurs):
-        modul = Modul(name=name)
+    def add_modul(
+        self,
+        name: str,
+        modulcode: str,
+        ects_punkte: int,
+        studiengang: Studiengang,
+        enrollment: Enrollment,
+        kurs: Kurs,
+    ):
+        modul = Modul(name=name, modulcode=modulcode, ects_punkte=ects_punkte)
         self.session.add(modul)
         self.session.commit()
         return modul
@@ -148,9 +164,11 @@ class DatabaseManager:
         stmt = select(Kurs).where(Kurs.nummer == kursnummer)
         return self.session.scalars(stmt).first()
 
-    def lade_modul(self, student: Student):
+    #
+    def lade_module_von_student(self, student: Student):
         stmt = select(Modul).where(Modul.studiengang_id == student.studiengang_id)
-        return self.session.scalars(stmt).first()
+        result = self.session.scalars(stmt).fetchall()
+        return result
 
     def lade_semester(self, student: Student):
         stmt = select(Semester).where(Semester.student_id == student.id)
@@ -209,7 +227,7 @@ class DatabaseManager:
         stmt = select(Kurs).join(Enrollment).where(Enrollment.student_id == student.id)
         return list(self.session.scalars(stmt))
 
-    def lade_module_von_student(self, student: Student):
+    def lade_module_von_student_as_list(self, student: Student):
         stmt = select(Modul).where(Modul.studiengang_id == student.studiengang_id)
         return list(self.session.scalars(stmt))
 

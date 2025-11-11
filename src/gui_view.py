@@ -733,11 +733,11 @@ class DashboardFrame(ctk.CTkFrame):
             row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5
         )
 
-        kurse_frame = ctk.CTkFrame(self, fg_color="transparent")
-        kurse_frame.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
+        module_frame = ctk.CTkFrame(self, fg_color="transparent")
+        module_frame.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
 
-        text_kurse_frame = ctk.CTkFrame(self, fg_color="transparent")
-        text_kurse_frame.grid(row=5, column=0, sticky="nsew", padx=10, pady=5)
+        text_module_frame = ctk.CTkFrame(self, fg_color="transparent")
+        text_module_frame.grid(row=5, column=0, sticky="nsew", padx=10, pady=5)
 
         ects_frame = ctk.CTkFrame(self, fg_color="transparent")
         ects_frame.grid(row=5, column=1, sticky="nsew", padx=10, pady=5)
@@ -848,27 +848,27 @@ class DashboardFrame(ctk.CTkFrame):
             )
             balken.grid(row=1, column=i, sticky="ew", padx=0)
 
-        # ---KURSE-FRAME---
-        # Kurse-Label
-        kurse_label = ctk.CTkLabel(
-            kurse_frame,
-            text="Kurse:",
+        # ---MODULE-FRAME---
+        # Module-Label
+        module_label = ctk.CTkLabel(
+            module_frame,
+            text="Module:",
             font=INFO,
             justify="left",
             bg_color="transparent",
         )
-        kurse_label.grid(row=0, column=0, sticky="w", padx=5)
+        module_label.grid(row=0, column=0, sticky="w", padx=5)
 
         # Enrollment-Icons
-        kurse_test = 36
+        module_test = 36
 
-        one_frame = ctk.CTkFrame(kurse_frame, fg_color="transparent")
+        one_frame = ctk.CTkFrame(module_frame, fg_color="transparent")
         one_frame.grid(row=1, column=0, sticky="ew", padx=0, pady=4)
 
-        kurse_frame.grid_columnconfigure(0, weight=1)
+        module_frame.grid_columnconfigure(0, weight=1)
 
-        for i in range(kurse_test):
-            one_frame.grid_columnconfigure(i, weight=1, uniform="kurse_icons")
+        for i in range(module_test):
+            one_frame.grid_columnconfigure(i, weight=1, uniform="modul_icons")
             # icon = EnrollmentIcon(
             #     one_frame,
             #     self.controller,
@@ -877,18 +877,18 @@ class DashboardFrame(ctk.CTkFrame):
             icon = ctk.CTkLabel(one_frame, font=MATERIAL_FONT, text="add_circle")
             icon.grid(row=1, column=i, sticky="nsew", padx=2)
 
-        # ---TEXT-KURSE-FRAME---
-        # Kurse-vertikal-Label
+        # ---TEXT-MODULE-FRAME---
+        # Module-vertikal-Label
         canvas = ctk.CTkCanvas(
-            text_kurse_frame,
-            width=90,
-            height=110,
+            text_module_frame,
+            width=100,
+            height=120,
             bg=BACKGROUND,
             highlightthickness=0,
             bd=0,
         )
         canvas.grid(row=0, column=0, rowspan=3, padx=10)
-        canvas.create_text(30, 70, text="Kurse", angle=90, font=H2italic, fill="black")
+        canvas.create_text(30, 90, text="Module", angle=90, font=H2italic, fill="black")
 
         # STATS-Label
         testanzahl1 = 4
@@ -896,21 +896,21 @@ class DashboardFrame(ctk.CTkFrame):
         testanzahl3 = 22
 
         abgeschlossen_label = ctk.CTkLabel(
-            text_kurse_frame,
+            text_module_frame,
             font=H2,
             text_color="#29C731",
             text=f"Abgeschlossen: {testanzahl1}",
             justify="right",
         )
         in_bearbeitung_label = ctk.CTkLabel(
-            text_kurse_frame,
+            text_module_frame,
             font=H2,
             text_color="#FEC109",
             text=f"In Bearbeitung: {testanzahl2}",
             justify="right",
         )
         ausstehend_label = ctk.CTkLabel(
-            text_kurse_frame,
+            text_module_frame,
             font=H2,
             text_color="black",
             text=f"Ausstehend: {testanzahl3}",
