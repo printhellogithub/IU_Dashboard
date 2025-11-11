@@ -43,6 +43,7 @@ class Controller:
             email=self.cache["email"],
             password=self.cache["password"],
             semester_anzahl=self.cache["semesteranzahl"],
+            modul_anzahl=self.cache["modulanzahl"],
             start_datum=start_datum,
             ziel_datum=zieldatum,
             ziel_note=self.cache["zielnote"],

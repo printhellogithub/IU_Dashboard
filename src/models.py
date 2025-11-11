@@ -68,6 +68,8 @@ class Student(Base):
     _semester_anzahl: Mapped[int] = mapped_column(Integer)
     semester: Mapped[List["Semester"]] = relationship(back_populates="student")
 
+    _modul_anzahl: Mapped[int] = mapped_column(Integer)
+
     enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="student")
 
     def __init__(
@@ -77,6 +79,7 @@ class Student(Base):
         email: str,
         password: str,
         semester_anzahl: int,
+        modul_anzahl: int,
         start_datum: date,
         ziel_datum: date,
         ziel_note: float,
@@ -90,6 +93,7 @@ class Student(Base):
         self.password = password  # läuft über Setter → Hashing
 
         self.semester_anzahl = semester_anzahl
+        self.modul_anzahl = modul_anzahl
         self.start_datum = start_datum
         self.ziel_datum = ziel_datum
         self.ziel_note = ziel_note
@@ -154,6 +158,14 @@ class Student(Base):
         self._semester_anzahl = value
 
     @hybrid_property
+    def modul_anzahl(self):  # type: ignore[reportRedeclaration]
+        return self._modul_anzahl
+
+    @modul_anzahl.setter
+    def modul_anzahl(self, value):
+        self._modul_anzahl = value
+
+    @hybrid_property
     def start_datum(self):  # type: ignore[reportRedeclaration]
         return self._start_datum
 
@@ -186,7 +198,7 @@ class Student(Base):
         gesamt_ects_punkte = 0
         for enrollment in self.enrollments:
             if enrollment.check_status():
-                gesamt_ects_punkte += enrollment.kurs.ects_punkte
+                gesamt_ects_punkte += enrollment.modul.ects_punkte
         return gesamt_ects_punkte
 
     def berechne_durchschnittsnote(self):
@@ -278,10 +290,13 @@ class Modul(Base):
     __tablename__ = "modul"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     _name: Mapped[str] = mapped_column(String)
+    _modulcode: Mapped[str] = mapped_column(String, unique=True)
+    _ects_punkte: Mapped[int] = mapped_column(Integer)
 
     studiengang_id = mapped_column(ForeignKey("studiengang.id"))
     studiengang: Mapped[Studiengang] = relationship(back_populates="module")
 
+    enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="modul")
     kurse: Mapped[List[Kurs]] = relationship(back_populates="modul")
 
     @hybrid_property
@@ -292,19 +307,24 @@ class Modul(Base):
     def name(self, value: str):
         self._name = value
 
+    @hybrid_property
+    def ects_punkte(self):  # type: ignore[reportRedeclaration]
+        return self._ects_punkte
+
+    @ects_punkte.setter
+    def ects_punkte(self, value: int):
+        self._ects_punkte = value
+
 
 # Kurs
 class Kurs(Base):
     __tablename__ = "kurs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     _name: Mapped[str] = mapped_column(String)
-    _nummer: Mapped[str] = mapped_column(String)
-    _ects_punkte: Mapped[int] = mapped_column(Integer)
+    _nummer: Mapped[str] = mapped_column(String, unique=True)
 
     modul_id = mapped_column(ForeignKey("modul.id"))
     modul: Mapped[Modul] = relationship(back_populates="kurse")
-
-    enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="kurs")
 
     @hybrid_property
     def name(self):  # type: ignore[reportRedeclaration]
@@ -322,14 +342,6 @@ class Kurs(Base):
     def nummer(self, value: str):
         self._nummer = value
 
-    @hybrid_property
-    def ects_punkte(self):  # type: ignore[reportRedeclaration]
-        return self._ects_punkte
-
-    @ects_punkte.setter
-    def ects_punkte(self, value: int):
-        self._ects_punkte = value
-
 
 # Enrollment
 class Enrollment(Base):
@@ -341,8 +353,9 @@ class Enrollment(Base):
 
     student_id = mapped_column(ForeignKey("student.id"))
     student: Mapped["Student"] = relationship(back_populates="enrollments")
-    kurs_id = mapped_column(ForeignKey("kurs.id"))
-    kurs: Mapped["Kurs"] = relationship(back_populates="enrollments")
+
+    modul_id = mapped_column(ForeignKey("modul.id"))
+    modul: Mapped["Modul"] = relationship(back_populates="enrollments")
 
     pruefungsleistungen: Mapped[List[Pruefungsleistung]] = relationship(
         back_populates="enrollment"

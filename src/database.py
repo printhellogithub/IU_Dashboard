@@ -32,6 +32,7 @@ class DatabaseManager:
         email: str,
         password: str,
         semester_anzahl: int,
+        modul_anzahl: int,
         start_datum,
         ziel_datum,
         ziel_note: float,
@@ -42,6 +43,7 @@ class DatabaseManager:
             email=email,
             password=password,
             semester_anzahl=semester_anzahl,
+            modul_anzahl=modul_anzahl,
             start_datum=start_datum,
             ziel_datum=ziel_datum,
             ziel_note=ziel_note,
@@ -128,11 +130,11 @@ class DatabaseManager:
         )
         return self.session.scalar(stmt)
 
-    def lade_enrollment(self, student: Student, kurs: Kurs) -> Enrollment | None:
+    def lade_enrollment(self, student: Student, modul: Modul) -> Enrollment | None:
         stmt = (
             select(Enrollment)
             .where(Enrollment.student_id == student.id)
-            .where(Enrollment.kurs_id == kurs.id)
+            .where(Enrollment.modul_id == modul.id)
         )
         return self.session.scalars(stmt).first()
 
@@ -191,7 +193,7 @@ class DatabaseManager:
         stmt = (
             select(Enrollment)
             .options(
-                selectinload(Enrollment.kurs),
+                selectinload(Enrollment.modul),
                 selectinload(Enrollment.student),
             )
             .where(Enrollment.student_id == student_id)

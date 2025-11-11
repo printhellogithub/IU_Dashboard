@@ -195,7 +195,7 @@ class LoginFrame(ctk.CTkFrame):
         self.go_to_dashboard = go_to_dashboard
         self.go_to_new_user = go_to_new_user
 
-        H1 = ctk.CTkFont(family="Noto Sans", size=164, weight="normal", slant="italic")
+        H1 = ctk.CTkFont(family="Segoe UI", size=140, weight="normal", slant="italic")
 
         ctk.CTkLabel(self, text="DASHBOARD", font=H1).pack(pady=20)
 
@@ -212,7 +212,7 @@ class LoginFrame(ctk.CTkFrame):
         ctk.CTkButton(self, text="Login", command=self.check_login).pack(pady=10)
 
         self.button_to_new_user = ctk.CTkButton(
-            self, text="Neuen Account anlegen", command=self.go_to_new_user
+            self, text="Neuer Account", command=self.go_to_new_user
         )
         self.button_to_new_user.pack(pady=20)
 
@@ -235,7 +235,7 @@ class NewUserFrame(ctk.CTkFrame):
         self.go_to_login = go_to_login
         self.go_to_StudiengangAuswahl = go_to_StudiengangAuswahl
 
-        H2 = ctk.CTkFont(family="Noto Sans", size=56, weight="normal", slant="italic")
+        H2 = ctk.CTkFont(family="Segoe UI", size=48, weight="normal", slant="italic")
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -259,23 +259,23 @@ class NewUserFrame(ctk.CTkFrame):
 
         # User-Email
         self.entry_email = ctk.CTkEntry(self, placeholder_text="Email-Adresse")
-        self.entry_email.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        self.entry_email.grid(row=1, column=0, padx=10, pady=10)
         self.label_email_not_valid = ctk.CTkLabel(self, text="", text_color="red")
         self.label_email_not_valid.grid(row=2, column=0, sticky="nsew", padx=10, pady=0)
 
         # PW
         self.entry_pw = ctk.CTkEntry(self, placeholder_text="Passwort", show="●")
-        self.entry_pw.grid(row=1, column=1, sticky="nsew", padx=10, pady=10)
+        self.entry_pw.grid(row=1, column=1, padx=10, pady=10)
 
         # Name
         self.entry_name = ctk.CTkEntry(self, placeholder_text="Dein Name")
-        self.entry_name.grid(row=3, column=0, sticky="nsew", padx=10, pady=10)
+        self.entry_name.grid(row=3, column=0, padx=10, pady=10)
 
         # Matrikelnummer
         self.entry_matrikelnummer = ctk.CTkEntry(
             self, placeholder_text="Deine Matrikelnummer"
         )
-        self.entry_matrikelnummer.grid(row=3, column=1, sticky="nsew", padx=10, pady=10)
+        self.entry_matrikelnummer.grid(row=3, column=1, padx=10, pady=10)
 
         # Hochschule
         self.hochschulen_dict = self.controller.get_hochschulen_dict()
@@ -293,7 +293,7 @@ class NewUserFrame(ctk.CTkFrame):
             self,
             values=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
         )
-        self.entry_semesteranzahl.grid(row=5, column=1, sticky="nsew", padx=10, pady=10)
+        self.entry_semesteranzahl.grid(row=5, column=1, padx=10, pady=10)
 
         # Ziel-Note
         self.entry_zielnote: float = 0.0
@@ -314,9 +314,11 @@ class NewUserFrame(ctk.CTkFrame):
         self.label_startdatum.grid(row=7, column=0, sticky="w", padx=10, pady=10)
 
         self.button_startdatum = ctk.CTkButton(
-            self, text="Startdatum auswählen", command=self.start_datum_calendar
+            self,
+            text="Startdatum auswählen",
+            command=self.start_datum_calendar_at_button,
         )
-        self.button_startdatum.grid(row=7, column=1, sticky="nsew", padx=10, pady=10)
+        self.button_startdatum.grid(row=7, column=1, padx=10, pady=10)
 
         self.label_startdatum_variable = ctk.CTkLabel(
             self, textvariable=self.selected_startdatum
@@ -336,9 +338,9 @@ class NewUserFrame(ctk.CTkFrame):
         self.label_zieldatum.grid(row=8, column=0, sticky="w", padx=10, pady=10)
 
         self.button_zieldatum = ctk.CTkButton(
-            self, text="Zieldatum auswählen", command=self.ziel_datum_calendar
+            self, text="Zieldatum auswählen", command=self.ziel_datum_calendar_at_button
         )
-        self.button_zieldatum.grid(row=8, column=1, sticky="nsew", padx=10, pady=10)
+        self.button_zieldatum.grid(row=8, column=1, padx=10, pady=10)
 
         self.label_zieldatum_variable = ctk.CTkLabel(
             self, textvariable=self.selected_zieldatum
@@ -351,9 +353,13 @@ class NewUserFrame(ctk.CTkFrame):
 
         # Submit-Button
         self.button_submit = ctk.CTkButton(self, text="Weiter", command=self.on_submit)
-        self.button_submit.grid(row=9, column=0, sticky="nsew", padx=10, pady=10)
+        self.button_submit.grid(row=10, column=1, padx=10, pady=10)
         self.label_leere_felder = ctk.CTkLabel(self, text="", text_color="red")
         self.label_leere_felder.grid(row=9, column=1, sticky="nsew", padx=10, pady=10)
+
+        # Zurück-Button
+        self.button_back = ctk.CTkButton(self, text="Zurück", command=self.go_to_login)
+        self.button_back.grid(row=10, column=0, padx=10, pady=10)
 
     def on_submit(self):
         # validiere Email
@@ -419,11 +425,38 @@ class NewUserFrame(ctk.CTkFrame):
         # Zur Studiengangauswahl
         self.go_to_StudiengangAuswahl(cache=cache)
 
-    def start_datum_calendar(self):
+    def start_datum_calendar_at_button(self):
+        self.start_datum_calendar(anchor=self.button_startdatum)
+
+    def start_datum_calendar(self, anchor):
         top = ctk.CTkToplevel(self)
+        top.overrideredirect(True)
+        top.transient(self.winfo_toplevel())
+        top.attributes("-topmost", True)
+        top.grab_set()
+        top.bind("<FocusOut>", lambda e: top.destroy())
+
+        bx = anchor.winfo_rootx()
+        by = anchor.winfo_rooty()
+        bw = anchor.winfo_width()
+        bh = anchor.winfo_height()
+
+        x = bx
+        y = by + bh
+
+        popup_w, popup_h = 320, 320
+        sw = top.winfo_screenwidth()
+        sh = top.winfo_screenheight()
+
+        if x + popup_w > sw:
+            x = max(0, bx + bw - popup_w)
+        if y + popup_h > sh:
+            y = max(0, by - popup_h)
+
+        top.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
+
         mindate_start = datetime.date(year=2010, month=1, day=1)
         maxdate_start = datetime.date.today()
-        top.title("Startdatum auswählen")
 
         cal_start = Calendar(
             top,
@@ -433,7 +466,6 @@ class NewUserFrame(ctk.CTkFrame):
             date_pattern="yyyy-mm-dd",
             mindate=mindate_start,
             maxdate=maxdate_start,
-            # disabledforeground="red",
             showweeknumbers=False,
         )
 
@@ -445,12 +477,38 @@ class NewUserFrame(ctk.CTkFrame):
             top.destroy()
 
         self.save_button_start = ctk.CTkButton(top, text="ok", command=save)
-        self.save_button_start.pack(pady=10)
+        self.save_button_start.pack(pady=5)
 
-    def ziel_datum_calendar(self):
-        top = ctk.CTkToplevel(
-            self,
-        )
+    def ziel_datum_calendar_at_button(self):
+        self.ziel_datum_calendar(anchor=self.button_zieldatum)
+
+    def ziel_datum_calendar(self, anchor):
+        top = ctk.CTkToplevel(self)
+        top.overrideredirect(True)
+        top.transient(self.winfo_toplevel())
+        top.attributes("-topmost", True)
+        top.grab_set()
+        top.bind("<FocusOut>", lambda e: top.destroy())
+
+        bx = anchor.winfo_rootx()
+        by = anchor.winfo_rooty()
+        bw = anchor.winfo_width()
+        bh = anchor.winfo_height()
+
+        x = bx
+        y = by + bh
+
+        popup_w, popup_h = 320, 320
+        sw = top.winfo_screenwidth()
+        sh = top.winfo_screenheight()
+
+        if x + popup_w > sw:
+            x = max(0, bx + bw - popup_w)
+        if y + popup_h > sh:
+            y = max(0, by - popup_h)
+
+        top.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
+
         mindate_ziel = datetime.date.today()
         maxdate_ziel = datetime.date(year=2200, month=12, day=31)
         top.title("Zieldatum auswählen")
@@ -536,6 +594,19 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         self.label_no_int = ctk.CTkLabel(self, text="", text_color="red")
         self.label_no_int.pack(pady=5)
 
+        # Modul-Anzahl
+        self.label_modulanzahl = ctk.CTkLabel(
+            self, text="Wie viele Module hat Dein Studiengang?"
+        )
+
+        self.label_modulanzahl.pack(pady=10)
+        modulvalues = [str(i) for i in range(1, 101)]
+        self.entry_modulanzahl = ctk.CTkOptionMenu(
+            self,
+            values=modulvalues,
+        )
+        self.entry_modulanzahl.pack(pady=10)
+
         # Submit-Button
         self.button_submit = ctk.CTkButton(self, text="Weiter", command=self.on_submit)
         self.button_submit.pack(pady=20)
@@ -586,8 +657,11 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
                         "Datenbankrückgabe entspricht nicht Eingabewert: Hochschule"
                     )
 
+        self.selected_modulanzahl = int(self.entry_modulanzahl.get())
+
         # Fuege values zum Cache hinzu
         self.cache["studiengang_ects"] = self.selected_ects
+        self.cache["modulanzahl"] = self.selected_modulanzahl
         self.cache["studiengang_name"] = self.selected_studiengang_name
         self.cache["studiengang_id"] = self.selected_studiengang_id
 
@@ -598,7 +672,7 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         self.go_to_dashboard(self.controller)
 
 
-class DashboardFrame(ctk.CTkScrollableFrame):
+class DashboardFrame(ctk.CTkFrame):
     def __init__(
         self,
         master,
@@ -608,19 +682,22 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         go_to_settings,
     ):
         super().__init__(master, fg_color="transparent")
-        # TODO
+
         self.controller = controller
         self.go_to_login = go_to_login
         self.go_to_enrollment = go_to_enrollement
         self.go_to_settings = go_to_settings
 
-        H1 = ctk.CTkFont(family="Noto Sans", size=116, weight="normal", slant="italic")
+        H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
         H1notitalic = ctk.CTkFont(
-            family="Noto Sans", size=116, weight="normal", slant="roman"
+            family="Segoe UI", size=84, weight="normal", slant="roman"
         )
-        H2 = ctk.CTkFont(family="Noto Sans", size=54, weight="normal", slant="roman")
-        H3 = ctk.CTkFont(family="Noto Sans", size=28, weight="normal", slant="roman")
-        INFO = ctk.CTkFont(family="Noto Sans", size=18, weight="normal", slant="roman")
+        H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
+        H2italic = ctk.CTkFont(
+            family="Segoe UI", size=32, weight="normal", slant="italic"
+        )
+        H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
+        INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
 
         MATERIAL_FONT = ctk.CTkFont(
             family="Material Symbols Sharp", size=24, weight="normal", slant="roman"
@@ -665,8 +742,8 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         ects_frame = ctk.CTkFrame(self, fg_color="transparent")
         ects_frame.grid(row=5, column=1, sticky="nsew", padx=10, pady=5)
 
-        noten_frame = ctk.CTkFrame(self, fg_color="gray20")
-        noten_frame.grid(row=6, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
+        noten_frame = ctk.CTkFrame(self, fg_color="gray95")
+        noten_frame.grid(row=6, column=0, columnspan=2, padx=10, pady=5)
 
         # --- TOP FRAME ---
         top_frame.grid_columnconfigure(0, weight=1)
@@ -747,7 +824,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         # Semester-Label
         semester_label = ctk.CTkLabel(
             semester_frame,
-            text="Semester",
+            text="Semester:",
             font=INFO,
             justify="left",
             bg_color="transparent",
@@ -774,7 +851,11 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         # ---KURSE-FRAME---
         # Kurse-Label
         kurse_label = ctk.CTkLabel(
-            kurse_frame, text="Kurse", font=INFO, justify="left", bg_color="transparent"
+            kurse_frame,
+            text="Kurse:",
+            font=INFO,
+            justify="left",
+            bg_color="transparent",
         )
         kurse_label.grid(row=0, column=0, sticky="w", padx=5)
 
@@ -801,13 +882,13 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         canvas = ctk.CTkCanvas(
             text_kurse_frame,
             width=90,
-            height=150,
+            height=110,
             bg=BACKGROUND,
             highlightthickness=0,
             bd=0,
         )
         canvas.grid(row=0, column=0, rowspan=3, padx=10)
-        canvas.create_text(50, 100, text="Kurse", angle=90, font=H2, fill="black")
+        canvas.create_text(30, 70, text="Kurse", angle=90, font=H2italic, fill="black")
 
         # STATS-Label
         testanzahl1 = 4
@@ -843,6 +924,7 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         erreichte_punkte = 20
         maximale_punkte = 180
         ects_color = "#29C731"
+
         ects_label = ctk.CTkLabel(
             ects_frame,
             font=H2,
@@ -868,9 +950,41 @@ class DashboardFrame(ctk.CTkScrollableFrame):
         ects_erreicht_label.pack(side="right", anchor="e")
 
         # ---NOTEN-FRAME---
-        # TODO
+        noten_color_good = "#29C731"
+        # noten_color_bad = "#F20D0D"
+        ds_note = str(1.30)
+        ziel_note = str(2.0)
 
-        # TODO TESTPROGRAMME AUS GIT ENTFERNEN.
+        ds_text_label = ctk.CTkLabel(
+            noten_frame,
+            font=H2,
+            text_color="black",
+            text="Dein \nNotendurchschnitt:",
+            justify="left",
+        )
+        ds_note_label = ctk.CTkLabel(
+            noten_frame,
+            font=H1notitalic,
+            text_color=noten_color_good,
+            text=f"{ds_note}",
+        )
+        ziel_text_label = ctk.CTkLabel(
+            noten_frame,
+            font=H2,
+            text_color="black",
+            text="Dein \nZiel:",
+            justify="left",
+        )
+        ziel_note_label = ctk.CTkLabel(
+            noten_frame,
+            font=H1notitalic,
+            text_color="black",
+            text=f"{ziel_note}",
+        )
+        ds_text_label.pack(side="left", padx=10)
+        ds_note_label.pack(side="left", padx=20)
+        ziel_text_label.pack(side="left", padx=10)
+        ziel_note_label.pack(side="left", padx=20)
 
 
 class EnrollmentFrame(ctk.CTkFrame):
@@ -891,7 +1005,8 @@ class App(ctk.CTk):
 
         self.controller = Controller()
         self.title("Dashboard")
-        self.geometry("960x540")
+        self.geometry("960x640")  # orig: 960x540
+        ctk.set_appearance_mode("light")
         self.current_frame = None
         self.show_login()
 
