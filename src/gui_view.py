@@ -205,6 +205,7 @@ class LoginFrame(ctk.CTkFrame):
 
         self.entry_pw = ctk.CTkEntry(self, placeholder_text="Passwort", show="●")
         self.entry_pw.pack(pady=5)
+        self.entry_pw.bind("<Return>", lambda event: self.check_login())
 
         self.label_info = ctk.CTkLabel(self, text="", text_color="red")
         self.label_info.pack(pady=5)
@@ -587,9 +588,11 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         self.search_combo_studiengang.pack(pady=20)
 
         # Gesamt-ECTS-Punkte
-        self.entry_ects = ctk.CTkEntry(
-            self, placeholder_text="Gesamt ECTS-Punkte Deines Studiums"
+        self.label_ects = ctk.CTkLabel(
+            self, text="Wie viele ECTS-Punkte hat dein Studium?"
         )
+        self.label_ects.pack(pady=5)
+        self.entry_ects = ctk.CTkEntry(self, placeholder_text="ECTS-Punkte")
         self.entry_ects.pack(pady=10)
         self.label_no_int = ctk.CTkLabel(self, text="", text_color="red")
         self.label_no_int.pack(pady=5)
@@ -612,6 +615,10 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         self.button_submit.pack(pady=20)
         self.label_leere_felder = ctk.CTkLabel(self, text="", text_color="red")
         self.label_leere_felder.pack(pady=5)
+
+        # Zurück-Button
+        self.button_back = ctk.CTkButton(self, text="Zurück", command=self.go_to_login)
+        self.button_back.pack(pady=20)
 
     def validate_ects(self, ects):
         try:
@@ -780,10 +787,10 @@ class DashboardFrame(ctk.CTkFrame):
         menu_button.pack(anchor="e", pady=(0, 2))
 
         # Name-Label
-        # TODO: text an tatsächliche student-Daten anpassen.
+        name_label_text = f"{self.data['name']}\n{self.data['studiengang']}\n{self.data['hochschule']}"
         name_label = ctk.CTkLabel(
             right_frame,
-            text="Max Mustermann\n Angewandte Künstliche Intelligenz\n IU Internationale Hochschule",
+            text=name_label_text,
             font=INFO,
             justify="right",
         )
@@ -793,22 +800,35 @@ class DashboardFrame(ctk.CTkFrame):
         dates_frame.grid_columnconfigure(0, weight=1)
         dates_frame.grid_columnconfigure(1, weight=0)
         dates_frame.grid_columnconfigure(2, weight=1)
-        # TODO: Daten an tatsächliche student-Daten anpassen
+
         # Start-Label
         start_label = ctk.CTkLabel(
-            dates_frame, text="Start: \n01.04.2024", font=H3, justify="left"
+            dates_frame,
+            text=f"Start: \n{self.data['startdatum']}",
+            font=H3,
+            justify="left",
         )
         start_label.grid(row=0, column=0, sticky="w", padx=5)
 
         # Heute-Label
+        if self.data["exmatrikulationsdatum"] is not None:
+            heute_label_text = (
+                f"Exmatrikulationsdatum:\n{self.data['exmatrikulationsdatum']}"
+            )
+        else:
+            heute_label_text = f"Heute:\n{self.data['heute']}"
+
         heute_label = ctk.CTkLabel(
-            dates_frame, text="Heute: \n10.11.2025", font=H3, justify="center"
+            dates_frame, text=heute_label_text, font=H3, justify="center"
         )
         heute_label.grid(row=0, column=1, sticky="nsew", padx=5)
 
         # Ziel-Label
         ziel_label = ctk.CTkLabel(
-            dates_frame, text="Ziel: \n30.03.2028", font=H3, justify="right"
+            dates_frame,
+            text=f"Ziel: \n{self.data['zieldatum']}",
+            font=H3,
+            justify="right",
         )
         ziel_label.grid(row=0, column=2, sticky="e", padx=5)
 
@@ -820,8 +840,7 @@ class DashboardFrame(ctk.CTkFrame):
             progress_color="#0A64FF",
             fg_color="#B5D0FF",
         )
-        # TODO: Set-Value an Studienfortschritt anpassen
-        progressbar.set(0.3)
+        progressbar.set(self.data["time_progress"])
         progressbar.pack(fill="both")
 
         # ---SEMESTER-FRAME---
@@ -836,21 +855,44 @@ class DashboardFrame(ctk.CTkFrame):
         semester_label.grid(row=0, column=0, sticky="w", padx=5)
 
         # Semester-Icons
-        # TODO: TEST-Funktion!!! muss mit logik befüllt werden, evtl. ToolTips(siehe Klasse oben)
-        test = 6
-        color = "orange"
-
         balken_frame = ctk.CTkFrame(semester_frame, fg_color="transparent")
         balken_frame.grid(row=1, column=0, columnspan=1, sticky="ew", padx=0, pady=4)
 
         semester_frame.grid_columnconfigure(0, weight=1)
 
-        for i in range(test):
-            balken_frame.grid_columnconfigure(i, weight=1, uniform="semester_balken")
+        for semester in self.data["semester"]:
+            # color-set
+            if semester["status"] == "SemesterStatus.ZURUECKLIEGEND":
+                color = "#29C731"
+            elif (
+                semester["status"] == "SemesterStatus.AKTUELL"
+                and self.data["exmatrikulationsdatum"] is None
+            ):
+                color = "#FEC109"
+            elif (
+                semester["status"] == "SemesterStatus.AKTUELL"
+                and self.data["exmatrikulationsdatum"] is not None
+            ):
+                color = "#F20D0D"
+            elif semester["status"] == "SemesterStatus.ZUKUENFTIG":
+                color = "#D9D9D9"
+            else:
+                raise ValueError(
+                    f"semester hat keinen gültigen Status: {semester['status']}"
+                )
+            index = semester["nummer"] - 1
+
+            balken_frame.grid_columnconfigure(
+                index=index, weight=1, uniform="semester_balken"
+            )
             balken = ctk.CTkLabel(
                 balken_frame, fg_color=color, corner_radius=8, height=26, text=""
             )
-            balken.grid(row=1, column=i, sticky="ew", padx=0)
+            balken.grid(row=1, column=index, sticky="ew", padx=0)
+            ToolTip(
+                balken,
+                text=f"Semester {semester['nummer']}\nBeginn: {semester['beginn']}\nEnde: {semester['ende']}",
+            )
 
         # ---MODULE-FRAME---
         # Module-Label
@@ -864,14 +906,12 @@ class DashboardFrame(ctk.CTkFrame):
         module_label.grid(row=0, column=0, sticky="w", padx=5)
 
         # Enrollment-Icons
-        module_test = 36
-
         one_frame = ctk.CTkFrame(module_frame, fg_color="transparent")
         one_frame.grid(row=1, column=0, sticky="ew", padx=0, pady=4)
 
         module_frame.grid_columnconfigure(0, weight=1)
-
-        for i in range(module_test):
+        # TODO: ENROLLMENTICONS MIT LOGIK??!!??
+        for i in range(self.data["modulanzahl"]):
             one_frame.grid_columnconfigure(i, weight=1, uniform="modul_icons")
             # icon = EnrollmentIcon(
             #     one_frame,
@@ -892,42 +932,53 @@ class DashboardFrame(ctk.CTkFrame):
             bd=0,
         )
         canvas.grid(row=0, column=0, rowspan=3, padx=10)
-        canvas.create_text(30, 90, text="Module", angle=90, font=H2italic, fill="black")
+        canvas.create_text(30, 60, text="Module", angle=90, font=H2italic, fill="black")
 
         # STATS-Label
-        testanzahl1 = 4
-        testanzahl2 = 6
-        testanzahl3 = 22
 
         abgeschlossen_label = ctk.CTkLabel(
             text_module_frame,
             font=H2,
             text_color="#29C731",
-            text=f"Abgeschlossen: {testanzahl1}",
+            text=f"Abgeschlossen: {self.data['abgeschlossen']}",
             justify="right",
         )
         in_bearbeitung_label = ctk.CTkLabel(
             text_module_frame,
             font=H2,
             text_color="#FEC109",
-            text=f"In Bearbeitung: {testanzahl2}",
+            text=f"In Bearbeitung: {self.data['in_bearbeitung']}",
             justify="right",
         )
         ausstehend_label = ctk.CTkLabel(
             text_module_frame,
             font=H2,
             text_color="black",
-            text=f"Ausstehend: {testanzahl3}",
+            text=f"Ausstehend: {self.data['ausstehend']}",
             justify="right",
         )
+        nicht_bestanden_label = ctk.CTkLabel(
+            text_module_frame,
+            font=H2,
+            text_color="black",
+            text=f"Nicht bestanden: {self.data['nicht_bestanden']}",
+            justify="right",
+        )
+
         abgeschlossen_label.grid(row=0, column=1, sticky="e", pady=0, padx=10)
         in_bearbeitung_label.grid(row=1, column=1, sticky="e", pady=0, padx=10)
         ausstehend_label.grid(row=2, column=1, sticky="e", pady=0, padx=10)
+        if self.data["nicht_bestanden"] > 0:
+            nicht_bestanden_label.grid(row=3, column=1, sticky="e", pady=0, padx=10)
 
         # ---ECTS-FRAME---
-        erreichte_punkte = 20
-        maximale_punkte = 180
         ects_color = "#29C731"
+        if (
+            self.data["exmatrikulationsdatum"] is not None
+            and self.data["erarbeitete_ects"] != self.data["gesamt_ects"]
+        ):
+            # Exmatrikuliert und nicht alle ECTS-Punkte erreicht
+            ects_color = "#F20D0D"
 
         ects_label = ctk.CTkLabel(
             ects_frame,
@@ -940,13 +991,13 @@ class DashboardFrame(ctk.CTkFrame):
             ects_frame,
             font=H1notitalic,
             text_color=ects_color,
-            text=f"{erreichte_punkte}",
+            text=f"{self.data['erarbeitete_ects']}",
         )
         ects_max_label = ctk.CTkLabel(
             ects_frame,
             font=H1notitalic,
             text_color="#D9D9D9",
-            text=f"/{maximale_punkte}",
+            text=f"/{self.data['gesamt_ects']}",
         )
 
         ects_label.pack()
@@ -954,10 +1005,13 @@ class DashboardFrame(ctk.CTkFrame):
         ects_erreicht_label.pack(side="right", anchor="e")
 
         # ---NOTEN-FRAME---
-        noten_color_good = "#29C731"
-        # noten_color_bad = "#F20D0D"
-        ds_note = str(1.30)
-        ziel_note = str(2.0)
+        if self.data["notendurchschnitt"] != "--":
+            if self.data["notendurchschnitt"] > self.data["zielnote"]:
+                noten_color = "#F20D0D"
+            else:
+                noten_color = "#29C731"
+        else:
+            noten_color = "black"
 
         ds_text_label = ctk.CTkLabel(
             noten_frame,
@@ -969,8 +1023,8 @@ class DashboardFrame(ctk.CTkFrame):
         ds_note_label = ctk.CTkLabel(
             noten_frame,
             font=H1notitalic,
-            text_color=noten_color_good,
-            text=f"{ds_note}",
+            text_color=noten_color,
+            text=f"{self.data['notendurchschnitt']}",
         )
         ziel_text_label = ctk.CTkLabel(
             noten_frame,
@@ -983,7 +1037,7 @@ class DashboardFrame(ctk.CTkFrame):
             noten_frame,
             font=H1notitalic,
             text_color="black",
-            text=f"{ziel_note}",
+            text=f"{self.data['zielnote']}",
         )
         ds_text_label.pack(side="left", padx=10)
         ds_note_label.pack(side="left", padx=20)

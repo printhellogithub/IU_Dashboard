@@ -8,9 +8,9 @@ from enum import Enum, auto
 from email_validator import validate_email, EmailNotValidError
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from datetime import date, datetime
+from datetime import date
 
-TODAY = datetime.today()
+TODAY = date.today()
 
 # PasswordHasher
 ph = PasswordHasher()
@@ -566,10 +566,14 @@ class Semester(Base):
     def ende(self, value: date):
         self._ende = value
 
-    def get_semester_status(self):
-        if TODAY < self.beginn:
+    def get_semester_status(self, exmatrikulationsdatum):
+        today = TODAY
+        if exmatrikulationsdatum is not None:
+            today = exmatrikulationsdatum
+
+        if today < self.beginn:
             return SemesterStatus.ZUKUENFTIG
-        elif TODAY >= self.beginn and TODAY <= self.ende:
+        elif today >= self.beginn and today <= self.ende:
             return SemesterStatus.AKTUELL
         else:
             return SemesterStatus.ZURUECKLIEGEND

@@ -111,17 +111,29 @@ class Controller:
             "in_bearbeitung": self.get_number_of_enrollments_with_status(
                 EnrollmentStatus.IN_BEARBEITUNG
             ),
+            "nicht_bestanden": self.get_number_of_enrollments_with_status(
+                EnrollmentStatus.NICHT_BESTANDEN
+            ),
             "ausstehend": self.get_number_of_enrollments_with_status_ausstehend(),
             "erarbeitete_ects": self.get_erarbeitete_ects(),
             "notendurchschnitt": self.get_notendurchschnitt(),
+            "exmatrikulationsdatum": self.student.exmatrikulationsdatum,
         }
 
     def get_time_progress(self):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
+
         dauer = (self.student.ziel_datum - self.student.start_datum).days
-        bisher = (datetime.date.today() - self.student.start_datum).days
-        progress = round(max(0, min(bisher / dauer, 1)), 3)
+        if self.student.exmatrikulationsdatum is not None:
+            # Status: Exmatrikuliert
+            bisher = (
+                self.student.exmatrikulationsdatum - self.student.start_datum
+            ).days
+            progress = round(max(0, min(bisher / dauer, 1)), 3)
+        else:
+            bisher = (datetime.date.today() - self.student.start_datum).days
+            progress = round(max(0, min(bisher / dauer, 1)), 3)
         return progress
 
     def get_number_of_enrollments_with_status(self, status: EnrollmentStatus) -> int:
@@ -169,11 +181,17 @@ class Controller:
                 notensumme += enrollment.berechne_enrollment_note()  # type: ignore
             else:
                 continue
-        return notensumme / self.get_number_of_enrollments_with_status(
-            EnrollmentStatus.ABGESCHLOSSEN
-        )
+        if (
+            self.get_number_of_enrollments_with_status(EnrollmentStatus.ABGESCHLOSSEN)
+            != 0
+        ):
+            return notensumme / self.get_number_of_enrollments_with_status(
+                EnrollmentStatus.ABGESCHLOSSEN
+            )
+        else:
+            return "--"
 
-    def get_list_of_semester(self):
+    def get_list_of_semester(self) -> list:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         semester_list = []
@@ -184,12 +202,14 @@ class Controller:
                 "nummer": semester.nummer,
                 "beginn": semester.beginn,
                 "ende": semester.ende,
-                "status": str(semester.get_semester_status()),
+                "status": str(
+                    semester.get_semester_status(self.student.exmatrikulationsdatum)
+                ),
             }
             semester_list.append(semester_dict)
         return semester_list
 
-    def get_list_of_enrollments(self):
+    def get_list_of_enrollments(self) -> list:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         enrollment_list = []
@@ -211,7 +231,7 @@ class Controller:
             enrollment_list.append(enrollment_dict)
         return enrollment_list
 
-    def get_list_of_kurse(self, modul: Modul):
+    def get_list_of_kurse(self, modul: Modul) -> list:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         kurse_list = []
@@ -225,7 +245,7 @@ class Controller:
             kurse_list.append(kurse_dict)
         return kurse_list
 
-    def get_list_of_pruefungsleistungen(self, enrollment: Enrollment):
+    def get_list_of_pruefungsleistungen(self, enrollment: Enrollment) -> list:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         pruefungsleistungen_list = []
