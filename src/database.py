@@ -54,9 +54,20 @@ class DatabaseManager:
         return student
 
     def add_enrollment(
-        self, student: Student, modul: Modul, status: EnrollmentStatus
+        self,
+        student: Student,
+        modul: Modul,
+        status: EnrollmentStatus,
+        einschreibe_datum,
+        anzahl_pruefungsleistungen,
     ) -> Enrollment:
-        enrollment = Enrollment(student=student, modul=modul, status=status)
+        enrollment = Enrollment(
+            student=student,
+            modul=modul,
+            status=status,
+            einschreibe_datum=einschreibe_datum,
+            anzahl_pruefungsleistungen=anzahl_pruefungsleistungen,
+        )
         self.session.add(enrollment)
         self.session.commit()
         # session.refresh(enrollment)
@@ -89,11 +100,14 @@ class DatabaseManager:
         name: str,
         modulcode: str,
         ects_punkte: int,
-        studiengang: Studiengang,
-        enrollment: Enrollment,
-        kurs: Kurs,
+        studiengang_id: int,
     ):
-        modul = Modul(name=name, modulcode=modulcode, ects_punkte=ects_punkte)
+        modul = Modul(
+            name=name,
+            modulcode=modulcode,
+            ects_punkte=ects_punkte,
+            studiengang_id=studiengang_id,
+        )
         self.session.add(modul)
         self.session.commit()
         return modul
@@ -164,7 +178,10 @@ class DatabaseManager:
         stmt = select(Kurs).where(Kurs.nummer == kursnummer)
         return self.session.scalars(stmt).first()
 
-    #
+    def lade_modul(self, modulcode) -> Modul | None:
+        stmt = select(Modul).where(Modul.modulcode == modulcode)
+        return self.session.scalars(stmt).first()
+
     def lade_module_von_student(self, student: Student):
         stmt = select(Modul).where(Modul.studiengang_id == student.studiengang_id)
         result = self.session.scalars(stmt).fetchall()

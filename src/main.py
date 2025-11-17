@@ -215,19 +215,7 @@ class Controller:
         enrollment_list = []
         enrollment_dict = {}
         for enrollment in self.student.enrollments:
-            enrollment_dict = {
-                "id": enrollment.id,
-                "einschreibe_datum": enrollment.einschreibe_datum,
-                "end_datum": enrollment.end_datum,
-                "status": enrollment.status,
-                "modul_id": enrollment.modul_id,
-                "modul_name": enrollment.modul.name,
-                "modul_code": enrollment.modul.modulcode,
-                "modul_ects": enrollment.modul.ects_punkte,
-                "kurse": self.get_list_of_kurse(enrollment.modul),
-                "anzahl_pruefungsleistungen": enrollment.anzahl_pruefungsleistungen,
-                "pruefungsleistungen": self.get_list_of_pruefungsleistungen(enrollment),
-            }
+            enrollment_dict = self.get_enrollment_data(enrollment.id)
             enrollment_list.append(enrollment_dict)
         return enrollment_list
 
@@ -262,6 +250,32 @@ class Controller:
             }
             pruefungsleistungen_list.append(pruefungsleistungen_dict)
         return pruefungsleistungen_list
+
+    def get_enrollment_data(self, id):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        for enrollment in self.student.enrollments:
+            if enrollment.id == id:
+                enrollment_dict = {
+                    "id": enrollment.id,
+                    "einschreibe_datum": enrollment.einschreibe_datum,
+                    "end_datum": enrollment.end_datum,
+                    "status": str(enrollment.status).strip("EnrollmentStatus."),
+                    "modul_id": enrollment.modul_id,
+                    "modul_name": enrollment.modul.name,
+                    "modul_code": enrollment.modul.modulcode,
+                    "modul_ects": enrollment.modul.ects_punkte,
+                    "kurse": self.get_list_of_kurse(enrollment.modul),
+                    "anzahl_pruefungsleistungen": enrollment.anzahl_pruefungsleistungen,
+                    "pruefungsleistungen": self.get_list_of_pruefungsleistungen(
+                        enrollment,
+                    ),
+                    "enrollment_note": enrollment.berechne_enrollment_note(),
+                }
+            else:
+                continue
+            return enrollment_dict
+        return {}
 
     def erstelle_hochschulen_von_hs_dict(self):
         hochschul_namen = {h.name for h in self.db.lade_alle_hochschulen()}
@@ -338,6 +352,65 @@ class Controller:
                     return str(enrollment.status)
         else:
             return None
+
+    def check_if_already_enrolled(self, enrollment_cache):
+        if self.student:
+            for enrollment in self.student.enrollments:
+                if enrollment_cache["modul_code"] == enrollment.modul.modulcode:
+                    return True
+                else:
+                    continue
+            return False
+
+    def erstelle_enrollment(self, enrollment_cache):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+
+        # String -> date konvertieren (ISO-Format 'YYYY-MM-DD' vorausgesetzt)
+        einschreibe_datum_str = enrollment_cache["startdatum"]
+        try:
+            einschreibe_datum = datetime.date.fromisoformat(einschreibe_datum_str)
+        except ValueError:
+            raise ValueError(f"Ungültiges Startdatum: {einschreibe_datum_str}")
+
+        modul = self.db.lade_modul(enrollment_cache["modul_code"])
+        if modul is None:
+            modul = self.db.add_modul(
+                name=enrollment_cache["modul_name"],
+                modulcode=enrollment_cache["modul_code"],
+                ects_punkte=enrollment_cache["modul_ects"],
+                studiengang_id=self.student.studiengang_id,
+            )
+        for kurs_dict in enrollment_cache["kurse_list"]:
+            for key, value in kurs_dict.items():
+                kursnummer = key
+                kurs = self.db.lade_kurs(kursnummer=kursnummer)
+                if kurs is None:
+                    kurs = self.db.add_kurs(name=value, nummer=kursnummer)
+                if kurs not in modul.kurse:
+                    modul.kurse.append(kurs)
+        enrollment = self.db.add_enrollment(
+            student=self.student,
+            modul=modul,
+            status=EnrollmentStatus.IN_BEARBEITUNG,
+            einschreibe_datum=einschreibe_datum,
+            anzahl_pruefungsleistungen=enrollment_cache["pl_anzahl"],
+        )
+        enrollment_dict = {
+            "id": enrollment.id,
+            "einschreibe_datum": enrollment.einschreibe_datum,
+            "end_datum": enrollment.end_datum,
+            "status": str(enrollment.status).strip("EnrollmentStatus."),
+            "modul_id": enrollment.modul_id,
+            "modul_name": enrollment.modul.name,
+            "modul_code": enrollment.modul.modulcode,
+            "modul_ects": enrollment.modul.ects_punkte,
+            "kurse": self.get_list_of_kurse(enrollment.modul),
+            "anzahl_pruefungsleistungen": enrollment.anzahl_pruefungsleistungen,
+            "pruefungsleistungen": self.get_list_of_pruefungsleistungen(enrollment),
+        }
+        self.db.session.commit()
+        return enrollment_dict
 
     # # --- Enrollment-Operationen ---
     # def enrollments(self) -> list[Enrollment]:
