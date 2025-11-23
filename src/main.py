@@ -1,7 +1,7 @@
 from __future__ import annotations
 from email_validator import validate_email, EmailNotValidError
 from database import DatabaseManager
-from models import Enrollment, EnrollmentStatus, Student, Modul
+from models import Enrollment, EnrollmentStatus, Student, Modul, Pruefungsleistung
 from hochschulen import hs_dict
 
 # import csv
@@ -139,13 +139,12 @@ class Controller:
     def get_number_of_enrollments_with_status(self, status: EnrollmentStatus) -> int:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
-        counter = 0
-        for enrollment in self.student.enrollments:
-            if enrollment.check_status() == status:
-                counter += 1
-            else:
-                continue
-        return counter
+        liste = [
+            enrollment
+            for enrollment in self.student.enrollments
+            if enrollment.status == status
+        ]
+        return len(liste)
 
     def get_number_of_enrollments_with_status_ausstehend(self) -> int:
         if not self.student:
@@ -161,33 +160,26 @@ class Controller:
         )
         return ausstehende
 
-    def get_erarbeitete_ects(self):
+    def get_erarbeitete_ects(self) -> int:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
-        ects = 0
-        for enrollment in self.student.enrollments:
-            if enrollment.check_status() == EnrollmentStatus.ABGESCHLOSSEN:
-                ects += enrollment.modul.ects_punkte
-            else:
-                continue
-        return ects
+        liste = [
+            enrollment.modul.ects_punkte
+            for enrollment in self.student.enrollments
+            if enrollment.status == EnrollmentStatus.ABGESCHLOSSEN
+        ]
+        return sum(liste)
 
-    def get_notendurchschnitt(self):
+    def get_notendurchschnitt(self) -> float | str:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
-        notensumme = 0
-        for enrollment in self.student.enrollments:
-            if enrollment.check_status() == EnrollmentStatus.ABGESCHLOSSEN:
-                notensumme += enrollment.berechne_enrollment_note()  # type: ignore
-            else:
-                continue
-        if (
-            self.get_number_of_enrollments_with_status(EnrollmentStatus.ABGESCHLOSSEN)
-            != 0
-        ):
-            return notensumme / self.get_number_of_enrollments_with_status(
-                EnrollmentStatus.ABGESCHLOSSEN
-            )
+        liste = [
+            enrollment.berechne_enrollment_note()
+            for enrollment in self.student.enrollments
+            if enrollment.status == EnrollmentStatus.ABGESCHLOSSEN
+        ]
+        if liste != []:
+            return float(round((sum(liste) / len(liste)), 2))  # type: ignore
         else:
             return "--"
 
@@ -239,23 +231,37 @@ class Controller:
         pruefungsleistungen_list = []
         pruefungsleistungen_dict = {}
         for pl in enrollment.pruefungsleistungen:
-            pruefungsleistungen_dict = {
-                "id": pl.id,
-                "teilpruefung": pl.teilpruefung,
-                "teilpruefung_gewicht": pl.teilpruefung_gewicht,
-                "versuch": pl.versuch,
-                "note": pl.note,
-                "datum": pl.datum,
-                "ist_bestanden": pl.ist_bestanden(),
-            }
+            pruefungsleistungen_dict = self.get_pl_dict(pl)
             pruefungsleistungen_list.append(pruefungsleistungen_dict)
         return pruefungsleistungen_list
+
+    def get_pl_dict(self, pl: Pruefungsleistung):
+        return {
+            "id": pl.id,
+            "teilpruefung": pl.teilpruefung,
+            "teilpruefung_gewicht": pl.teilpruefung_gewicht,
+            "versuch": pl.versuch,
+            "note": pl.note,
+            "datum": pl.datum,
+            "ist_bestanden": pl.ist_bestanden(),
+        }
+
+    def get_pl_with_id(self, enrollment_id, pl_id):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        for enrollment in self.student.enrollments:
+            if enrollment.id == enrollment_id:
+                for pl in enrollment.pruefungsleistungen:
+                    if pl.id == pl_id:
+                        return self.get_pl_dict(pl)
+        return {}
 
     def get_enrollment_data(self, id):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         for enrollment in self.student.enrollments:
             if enrollment.id == id:
+                enrollment.check_status()
                 enrollment_dict = {
                     "id": enrollment.id,
                     "einschreibe_datum": enrollment.einschreibe_datum,
@@ -349,6 +355,7 @@ class Controller:
         if self.student:
             for enrollment in self.student.enrollments:
                 if enrollment_id == enrollment.id:
+                    enrollment.check_status()
                     return str(enrollment.status)
         else:
             return None
@@ -366,13 +373,14 @@ class Controller:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
 
-        # String -> date konvertieren (ISO-Format 'YYYY-MM-DD' vorausgesetzt)
+        # Einschreibedatum setzen
         einschreibe_datum_str = enrollment_cache["startdatum"]
         try:
             einschreibe_datum = datetime.date.fromisoformat(einschreibe_datum_str)
         except ValueError:
             raise ValueError(f"Ungültiges Startdatum: {einschreibe_datum_str}")
 
+        # Modul erstellen, falls nicht vorhanden
         modul = self.db.lade_modul(enrollment_cache["modul_code"])
         if modul is None:
             modul = self.db.add_modul(
@@ -381,6 +389,7 @@ class Controller:
                 ects_punkte=enrollment_cache["modul_ects"],
                 studiengang_id=self.student.studiengang_id,
             )
+        # Kurse erstellen, falls nicht vorhanden
         for kurs_dict in enrollment_cache["kurse_list"]:
             for key, value in kurs_dict.items():
                 kursnummer = key
@@ -389,6 +398,7 @@ class Controller:
                     kurs = self.db.add_kurs(name=value, nummer=kursnummer)
                 if kurs not in modul.kurse:
                     modul.kurse.append(kurs)
+        # enrollment erstellen
         enrollment = self.db.add_enrollment(
             student=self.student,
             modul=modul,
@@ -396,6 +406,19 @@ class Controller:
             einschreibe_datum=einschreibe_datum,
             anzahl_pruefungsleistungen=enrollment_cache["pl_anzahl"],
         )
+        # Prüfungsleistungen erstellen:
+        for i in range(enrollment.anzahl_pruefungsleistungen):
+            for v in range(1, 4, 1):
+                enrollment.add_pruefungsleistung(
+                    teilpruefung=i,
+                    teilpruefung_gewicht=round(
+                        float(1 / enrollment.anzahl_pruefungsleistungen), ndigits=2
+                    ),
+                    versuch=v,
+                    note=None,
+                    datum=None,
+                )
+
         enrollment_dict = {
             "id": enrollment.id,
             "einschreibe_datum": enrollment.einschreibe_datum,
@@ -411,6 +434,26 @@ class Controller:
         }
         self.db.session.commit()
         return enrollment_dict
+
+    def change_pl(self, enrollment_id, pl_dict):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+
+        # Einschreibedatum setzen
+        pl_datum_str = pl_dict["datum"]
+        try:
+            pl_datum = datetime.date.fromisoformat(pl_datum_str)
+        except ValueError:
+            raise ValueError(f"Ungültiges Startdatum: {pl_datum_str}")
+
+        for enrollment in self.student.enrollments:
+            if enrollment.id == enrollment_id:
+                for pl in enrollment.pruefungsleistungen:
+                    if pl.id == pl_dict["id"]:
+                        pl.datum = pl_datum
+                        pl.note = pl_dict["note"]
+                        self.db.session.commit()
+                        enrollment.check_status()
 
     # # --- Enrollment-Operationen ---
     # def enrollments(self) -> list[Enrollment]:

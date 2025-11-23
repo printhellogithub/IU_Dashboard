@@ -191,7 +191,7 @@ class Student(Base):
 
     # Methoden von Student
     def erstelle_enrollment(self):
-        # verlegen nach controller? student müsste db parameter haben, oder?
+        # verlegt nach Controller
         pass
 
     def berechne_gesamt_ects(self):
@@ -406,7 +406,12 @@ class Enrollment(Base):
         self._anzahl_pruefungsleistungen = value
 
     def add_pruefungsleistung(
-        self, teilpruefung, teilpruefung_gewicht, versuch, note: float, datum: date
+        self,
+        teilpruefung,
+        teilpruefung_gewicht,
+        versuch,
+        note: float | None,
+        datum: date | None,
     ):
         self.pruefungsleistungen.append(
             Pruefungsleistung(
@@ -420,40 +425,54 @@ class Enrollment(Base):
         self.check_status()
 
     def check_status(self):
-        counter = 0
-        if self.pruefungsleistungen:
-            for pruefungsleistung in self.pruefungsleistungen:
-                if pruefungsleistung.ist_bestanden():
-                    counter += 1
-                    if counter == self.anzahl_pruefungsleistungen:
-                        self.status = EnrollmentStatus.ABGESCHLOSSEN
-                        break
-                    else:
-                        continue
-                elif pruefungsleistung.versuch == 3:
-                    self.status = EnrollmentStatus.NICHT_BESTANDEN
-                    break
-                else:
-                    self.status = EnrollmentStatus.IN_BEARBEITUNG
-                    continue
-        else:
-            self.status = EnrollmentStatus.IN_BEARBEITUNG
+        abgeschlossene_pls = [
+            pl for pl in self.pruefungsleistungen if pl.note is not None
+        ]
+        bestandene_pls = [pl for pl in abgeschlossene_pls if pl.ist_bestanden()]
+        if len(bestandene_pls) == self.anzahl_pruefungsleistungen:
+            self.status = EnrollmentStatus.ABGESCHLOSSEN
+            self.end_datum = self.set_end_date()
+            return
+        for pl in abgeschlossene_pls:
+            if pl.versuch == 3 and not pl.ist_bestanden():
+                self.status = EnrollmentStatus.NICHT_BESTANDEN
+                return
+        self.status = EnrollmentStatus.IN_BEARBEITUNG
 
     def berechne_enrollment_note(self) -> float | None:
-        if self.pruefungsleistungen:
+        abgeschlossene_pls = [
+            pl for pl in self.pruefungsleistungen if pl.note is not None
+        ]
+        bestandene_pls = [pl for pl in abgeschlossene_pls if pl.ist_bestanden()]
+        if bestandene_pls != []:
             # noten_summe wird gewichtet -> durchschnitt
             noten_summe = 0
-            for pruefungsleistung in self.pruefungsleistungen:
-                if pruefungsleistung.ist_bestanden():
-                    noten_summe += (
-                        pruefungsleistung.note * pruefungsleistung.teilpruefung_gewicht
-                    )
-                else:
-                    continue
-            enrollment_note = float(round(noten_summe, 2))
+            gewicht_summe = 0
+            for pruefungsleistung in bestandene_pls:
+                noten_summe += (
+                    pruefungsleistung.note * pruefungsleistung.teilpruefung_gewicht  # type: ignore
+                )
+                gewicht_summe += pruefungsleistung.teilpruefung_gewicht
+            ds_note = noten_summe / gewicht_summe
+            enrollment_note = float(round(ds_note, 2))
             return enrollment_note
         else:
             return None
+
+    def set_end_date(self):
+        abgeschlossene_pls = [
+            pl for pl in self.pruefungsleistungen if pl.note is not None
+        ]
+        bestandene_pls = [pl for pl in abgeschlossene_pls if pl.ist_bestanden()]
+        last_date = None
+        for pl in bestandene_pls:
+            if last_date is None:
+                last_date = pl.datum
+            elif last_date < pl.datum:  # type: ignore
+                last_date = pl.datum
+            else:
+                continue
+        return last_date
 
 
 # Prüfungsleistung
@@ -466,8 +485,8 @@ class Pruefungsleistung(Base):
     _teilpruefung_gewicht: Mapped[float] = mapped_column(Float)
     _versuch: Mapped[int] = mapped_column(Integer)
 
-    _note: Mapped[float] = mapped_column(Float)
-    _datum: Mapped[date] = mapped_column(Date)
+    _note: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    _datum: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
 
     enrollment_id: Mapped[int] = mapped_column(
         ForeignKey("enrollment.id"), nullable=False
@@ -503,7 +522,7 @@ class Pruefungsleistung(Base):
         return self._note
 
     @note.setter
-    def note(self, value: float):
+    def note(self, value: float | None):
         self._note = value
 
     @hybrid_property
@@ -511,7 +530,7 @@ class Pruefungsleistung(Base):
         return self._datum
 
     @datum.setter
-    def datum(self, value: date):
+    def datum(self, value: date | None):
         self._datum = value
 
     def __init__(self, teilpruefung, teilpruefung_gewicht, versuch, note, datum):
@@ -522,7 +541,9 @@ class Pruefungsleistung(Base):
         self.datum = datum
 
     def ist_bestanden(self):
-        if self.note > 4.0:
+        if self.note is None:
+            return False
+        elif self.note > 4.0:
             return False
         else:
             return True
