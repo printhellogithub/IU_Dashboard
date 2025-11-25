@@ -30,25 +30,23 @@ class Controller:
             return False
 
     def erstelle_account(self, cache: dict):
-        self.cache = cache
-
         start_datum = datetime.date.fromisoformat(cache["startdatum"])
         zieldatum = datetime.date.fromisoformat(cache["zieldatum"])
 
         self.student = self.db.add_student(
-            name=self.cache["name"],
-            matrikelnummer=self.cache["matrikelnummer"],
-            email=self.cache["email"],
-            password=self.cache["password"],
-            semester_anzahl=self.cache["semesteranzahl"],
-            modul_anzahl=self.cache["modulanzahl"],
+            name=cache["name"],
+            matrikelnummer=cache["matrikelnummer"],
+            email=cache["email"],
+            password=cache["password"],
+            semester_anzahl=cache["semesteranzahl"],
+            modul_anzahl=cache["modulanzahl"],
             start_datum=start_datum,
             ziel_datum=zieldatum,
-            ziel_note=self.cache["zielnote"],
+            ziel_note=cache["zielnote"],
         )
         self.erstelle_semester_fuer_student(self.student)
-        self.add_hochschule_zu_student(student=self.student, cache=self.cache)
-        self.add_studiengang_zu_student(student=self.student, cache=self.cache)
+        self.add_hochschule_zu_student(student=self.student, cache=cache)
+        self.add_studiengang_zu_student(student=self.student, cache=cache)
         # if not studiengang in hochschule.studiengaenge:
         self.add_studiengang_zu_hochschule(cache=cache)
         # self.db.session.flush()
@@ -93,7 +91,9 @@ class Controller:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         return {
+            "email": self.student.email,
             "name": self.student.name,
+            "matrikelnummer": self.student.matrikelnummer,
             "studiengang": self.student.studiengang.name,
             "hochschule": self.student.hochschule.name,
             "startdatum": self.student.start_datum,
@@ -455,15 +455,110 @@ class Controller:
                         self.db.session.commit()
                         enrollment.check_status()
 
-    # # --- Enrollment-Operationen ---
-    # def enrollments(self) -> list[Enrollment]:
-    #     return self.db.lade_enrollments_von_student(self.student.id)
+    def change_email(self, new_email: str):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.email = new_email
 
-    # def add_enrollment(self, kursname: str, kursnummer: str) -> Enrollment:
-    #     kurs = self.db.lade_kurs(kursnummer) or self.db.add_kurs(
-    #         kursname, kursnummer
-    #     )
-    #     return self.db.add_enrollment(self.student, kurs, EnrollmentStatus.IN_BEARBEITUNG)
+    def change_pw(self, new_pw: str):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.password = new_pw
 
-    # def change_enrollment_status(self, enrollment: Enrollment, status: EnrollmentStatus):
-    #     self.db.change_enrollment_status(enrollment, status)
+    def change_name(self, new_name: str):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.name = new_name
+
+    def change_matrikelnummer(self, value: str):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.matrikelnummer = value
+
+    def change_semester_anzahl(self, value: int):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.semester_anzahl = value
+        self.student.semester.clear()
+        self.erstelle_semester_fuer_student(self.student)
+
+    def change_startdatum(self, value: datetime.date):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.start_datum = value
+        self.student.semester.clear()
+        self.erstelle_semester_fuer_student(self.student)
+
+    def change_gesamt_ects(self, value: int):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.studiengang.gesamt_ects_punkte = value
+
+    def change_modul_anzahl(self, value: int):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.modul_anzahl = value
+
+    def change_hochschule(self, id, hs):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        cache = {
+            "hochschulid": id,
+            "hochschulname": hs,
+            "studiengang_id": self.student.studiengang_id,
+        }
+        self.add_hochschule_zu_student(student=self.student, cache=cache)
+        self.change_studiengang(value=self.student.studiengang.name)
+
+    def change_studiengang(self, value):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        studiengang = [
+            studiengang
+            for studiengang in self.student.hochschule.studiengaenge
+            if studiengang.name == value
+        ]
+        # TODO: Sicherstellen, dass mit enrollments pls gelöscht werden, aber keine Module
+        self.student.enrollments.clear()
+        if studiengang:
+            self.student.studiengang = studiengang[0]
+        else:
+            studiengang = self.erstelle_studiengang(
+                self.student.studiengang.name,
+                self.student.studiengang.gesamt_ects_punkte,
+            )
+            for k, v in studiengang.items():
+                neu_cache = {
+                    "hochschulid": self.student.hochschule_id,
+                    "hochschulname": self.student.hochschule.name,
+                    "studiengang_id": k,
+                }
+                self.add_studiengang_zu_hochschule(cache=neu_cache)
+
+                self.add_studiengang_zu_student(student=self.student, cache=neu_cache)
+        self.db.session.commit()
+
+    def logout(self) -> None:
+        try:
+            if self.db.session.is_active:
+                self.db.session.expire_all()
+        except Exception:
+            pass
+        try:
+            self.db.session.close()
+        except Exception:
+            pass
+        self.student = None
+        self.db.recreate_session()
+
+    def delete_student(self):
+        # DATENINTIGRITÄT WAHREN:
+        # checke cascade="all, delete-orphan" an richtigen stellen
+        #
+        # Löschen: student, Enrollments, Prüfungsleistungen, Semester
+        # Nicht löschen: Hochschule, Studiengang, Module, Kurse
+        # Es muss verschwinden:
+        # student aus hochschule.studenten
+        # student aus studiengang
+        # Enrollments aus Modulen
+        pass

@@ -22,8 +22,15 @@ class DatabaseManager:
         self.engine = create_engine("sqlite+pysqlite:///data.db", echo=False)
         # Alle Tabellen erzeugen
         Base.metadata.create_all(self.engine)
-        SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
-        self.session = SessionLocal()
+        self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
+        self.session = self.SessionLocal()
+
+    def recreate_session(self):
+        try:
+            self.session.close()
+        except Exception:
+            pass
+        self.session = self.SessionLocal()
 
     def add_student(
         self,
