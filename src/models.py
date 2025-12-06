@@ -66,11 +66,17 @@ class Student(Base):
     studiengang: Mapped[Studiengang] = relationship(back_populates="studenten")
 
     _semester_anzahl: Mapped[int] = mapped_column(Integer)
-    semester: Mapped[List["Semester"]] = relationship(back_populates="student")
+    semester: Mapped[List["Semester"]] = relationship(
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )
 
     _modul_anzahl: Mapped[int] = mapped_column(Integer)
 
-    enrollments: Mapped[List["Enrollment"]] = relationship(back_populates="student")
+    enrollments: Mapped[List["Enrollment"]] = relationship(
+        back_populates="student",
+        cascade="all, delete-orphan",
+    )
 
     def __init__(
         self,
@@ -370,7 +376,7 @@ class Enrollment(Base):
     # Möglichkeit mehrerer Teilprüfungen abdecken!
     _anzahl_pruefungsleistungen: Mapped[int] = mapped_column(Integer)
     pruefungsleistungen: Mapped[List[Pruefungsleistung]] = relationship(
-        back_populates="enrollment"
+        back_populates="enrollment", cascade="all, delete-orphan"
     )
 
     @hybrid_property

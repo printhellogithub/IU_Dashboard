@@ -62,6 +62,7 @@ class Controller:
                 f"Hochschule ({cache['hochschulid']}) wurde nicht gefunden!"
             )
         student.hochschule = hs
+        self.db.session.commit()
         # session.flush() ?
 
     def add_studiengang_zu_student(self, student: Student, cache):
@@ -71,6 +72,7 @@ class Controller:
                 f"Studiengang ({cache['studiengang_id']}) wurde nicht gefunden!"
             )
         student.studiengang = sg
+        self.db.session.commit()
         # session.flush()
 
     def add_studiengang_zu_hochschule(self, cache):
@@ -86,6 +88,7 @@ class Controller:
             )
         if sg not in hs.studiengaenge:
             hs.studiengaenge.append(sg)
+            self.db.session.commit()
 
     def load_dashboard_data(self):
         if not self.student:
@@ -314,10 +317,12 @@ class Controller:
 
     def erstelle_hochschule(self, hochschul_name) -> dict[int, str]:
         hochschule = self.db.add_hochschule(hochschul_name)
+        self.db.session.commit()
         return {hochschule.id: hochschule.name}
 
     def erstelle_studiengang(self, studiengang_name, gesamt_ects_punkte):
         studiengang = self.db.add_studiengang(studiengang_name, gesamt_ects_punkte)
+        self.db.session.commit()
         return {studiengang.id: studiengang.name}
 
     def erstelle_semester_fuer_student(self, student: Student):
@@ -334,6 +339,7 @@ class Controller:
             self.db.add_semester(
                 student=student, nummer=nummer, ende=ende, beginn=beginn
             )
+        self.db.session.commit()
 
     def validate_email_for_new_account(self, value: str):
         try:
@@ -459,21 +465,25 @@ class Controller:
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.email = new_email
+        self.db.session.commit()
 
     def change_pw(self, new_pw: str):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.password = new_pw
+        self.db.session.commit()
 
     def change_name(self, new_name: str):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.name = new_name
+        self.db.session.commit()
 
     def change_matrikelnummer(self, value: str):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.matrikelnummer = value
+        self.db.session.commit()
 
     def change_semester_anzahl(self, value: int):
         if not self.student:
@@ -481,6 +491,7 @@ class Controller:
         self.student.semester_anzahl = value
         self.student.semester.clear()
         self.erstelle_semester_fuer_student(self.student)
+        self.db.session.commit()
 
     def change_startdatum(self, value: datetime.date):
         if not self.student:
@@ -488,16 +499,19 @@ class Controller:
         self.student.start_datum = value
         self.student.semester.clear()
         self.erstelle_semester_fuer_student(self.student)
+        self.db.session.commit()
 
     def change_gesamt_ects(self, value: int):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.studiengang.gesamt_ects_punkte = value
+        self.db.session.commit()
 
     def change_modul_anzahl(self, value: int):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.modul_anzahl = value
+        self.db.session.commit()
 
     def change_hochschule(self, id, hs):
         if not self.student:
@@ -509,6 +523,7 @@ class Controller:
         }
         self.add_hochschule_zu_student(student=self.student, cache=cache)
         self.change_studiengang(value=self.student.studiengang.name)
+        self.db.session.commit()
 
     def change_studiengang(self, value):
         if not self.student:
@@ -538,6 +553,24 @@ class Controller:
                 self.add_studiengang_zu_student(student=self.student, cache=neu_cache)
         self.db.session.commit()
 
+    def change_zieldatum(self, value: datetime.date):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.ziel_datum = value
+        self.db.session.commit()
+
+    def change_zielnote(self, value):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.ziel_note = value
+        self.db.session.commit()
+
+    def change_exmatrikulationsdatum(self, value):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        self.student.werde_exmatrikuliert(value)
+        self.db.session.commit()
+
     def logout(self) -> None:
         try:
             if self.db.session.is_active:
@@ -552,13 +585,6 @@ class Controller:
         self.db.recreate_session()
 
     def delete_student(self):
-        # DATENINTIGRITÄT WAHREN:
-        # checke cascade="all, delete-orphan" an richtigen stellen
-        #
-        # Löschen: student, Enrollments, Prüfungsleistungen, Semester
-        # Nicht löschen: Hochschule, Studiengang, Module, Kurse
-        # Es muss verschwinden:
-        # student aus hochschule.studenten
-        # student aus studiengang
-        # Enrollments aus Modulen
-        pass
+        self.db.session.delete(self.student)
+        self.db.session.commit()
+        self.logout()

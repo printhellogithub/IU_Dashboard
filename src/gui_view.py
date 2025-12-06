@@ -15,6 +15,7 @@ BACKGROUND = "#FFFFFF"
 GRUEN = "#29C731"
 GELB = "#FEC109"
 ROT = "#F20D0D"
+HELLROT = "#FF8585"
 GRAU = "#D9D9D9"
 BLAU = "#0A64FF"
 HELLBLAU = "#B5D0FF"
@@ -854,7 +855,6 @@ class DashboardFrame(ctk.CTkFrame):
         right_frame.grid(row=0, column=1, sticky="e", padx=0, pady=0)
 
         # Menu-Button
-        # TODO: Menu ist im moment leer, evtl. OptionMenu? oder Toplevel-Window?
         self.menu_button = ctk.CTkButton(
             right_frame,
             text="menu",
@@ -918,11 +918,19 @@ class DashboardFrame(ctk.CTkFrame):
 
         # ---PROGRESS-FRAME---
         # Progress-Bar
+        # Farben:
+        if self.data["exmatrikulationsdatum"]:
+            progress_color = ROT
+            background_color = HELLROT
+        else:
+            progress_color = BLAU
+            background_color = HELLBLAU
+
         progressbar = ctk.CTkProgressBar(
             progress_frame,
             orientation="horizontal",
-            progress_color="#0A64FF",
-            fg_color="#B5D0FF",
+            progress_color=progress_color,
+            fg_color=background_color,
         )
         progressbar.set(self.data["time_progress"])
         progressbar.pack(fill="both")
@@ -1079,6 +1087,8 @@ class DashboardFrame(ctk.CTkFrame):
                     command=lambda: self.after(0, self.go_to_add_enrollment),
                 )
                 icon.grid(row=1, column=i, sticky="nsew", padx=0)
+                if self.data["exmatrikulationsdatum"]:
+                    icon.configure(state="disabled", hover=False)
 
         # ---TEXT-MODULE-FRAME---
         # Module-vertikal-Label
@@ -2398,7 +2408,7 @@ class SettingsFrame(ctk.CTkScrollableFrame):
                 self.controller.change_startdatum(
                     datetime.date.fromisoformat(self.selected_startdatum_real)
                 )
-                self.sa_not_valid.configure(text="Gespeichert")
+                self.sd_not_valid.configure(text="Gespeichert")
         else:
             self.sd_not_valid.configure(text="Kein Datum gewählt")
 
@@ -2414,11 +2424,11 @@ class SettingsFrame(ctk.CTkScrollableFrame):
     def save_modul_anzahl(self):
         neu_modulanzahl = int(self.entry_modulanzahl.get())
         if neu_modulanzahl != self.data["modulanzahl"]:
-            if neu_modulanzahl < (self.data["modulanzahl"] - self.data["ausstehend"]):
+            if neu_modulanzahl < len(self.data["enrollments"]):
+                self.ma_not_valid.configure(text="Du hast schon mehr Module begonnen")
+            else:
                 self.controller.change_modul_anzahl(neu_modulanzahl)
                 self.ma_not_valid.configure(text="Gespeichert")
-            else:
-                self.ma_not_valid.configure(text="Du hast schon mehr Module begonnen")
         else:
             self.ma_not_valid.configure(text="Entspricht bisherigen Wert")
 
@@ -2569,7 +2579,10 @@ class SettingsFrame(ctk.CTkScrollableFrame):
         ]
 
         mindate_start = datetime.date(year=2010, month=1, day=1)
-        maxdate_start = min(einschreibe_dates)
+        if einschreibe_dates:
+            maxdate_start = min(einschreibe_dates)
+        else:
+            maxdate_start = datetime.date.today()
 
         cal_start = Calendar(
             top,
@@ -2614,15 +2627,375 @@ class SettingsFrame(ctk.CTkScrollableFrame):
 
 
 class ExFrame(ctk.CTkFrame):
-    def __init__(self, master, controller: Controller, go_to_dashboard):
+    def __init__(self, master, controller: Controller, go_to_dashboard, go_to_settings):
         super().__init__(master, fg_color="transparent")
-        # TODO
+
+        self.controller = controller
+        self.go_to_dashboard = go_to_dashboard
+        self.go_to_settings = go_to_settings
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
+
+        # DATA
+        self.data = self.controller.load_dashboard_data()
+
+        # FONTS
+        # H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
+        # H1notitalic = ctk.CTkFont(
+        #     family="Segoe UI", size=84, weight="normal", slant="roman"
+        # )
+        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
+        H2italic = ctk.CTkFont(
+            family="Segoe UI", size=32, weight="normal", slant="italic"
+        )
+        # H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
+        # INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
+        MATERIAL_FONT = ctk.CTkFont(
+            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
+        )
+
+        ex_frame = ctk.CTkFrame(self, fg_color="gray95")
+        ex_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=5, pady=0)
+
+        # SETTINGS FRAME ÜBERSCHRIFT
+        ex_frame.grid_columnconfigure(0, weight=1)
+        ex_frame.grid_columnconfigure(1, weight=0)
+
+        ex_ueber_label = ctk.CTkLabel(
+            ex_frame, text="Du wurdest exmatrikuliert?", font=H2italic, justify="left"
+        )
+        ex_ueber_label.grid(row=0, sticky="nw", padx=10, pady=0)
+
+        ex_close_button = ctk.CTkButton(
+            ex_frame,
+            text="Close",
+            font=MATERIAL_FONT,
+            width=10,
+            fg_color="transparent",
+            text_color="black",
+            hover_color="gray90",
+            border_color="black",
+            command=lambda: self.after(0, self.go_to_dashboard),
+        )
+        ex_close_button.grid(row=0, column=1, sticky="ne")
+
+        set_ex_frame = ctk.CTkFrame(self, fg_color="gray95")
+        set_ex_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=0)
+
+        set_ex_frame.grid_columnconfigure(0, weight=1)
+        set_ex_frame.grid_columnconfigure(1, weight=1)
+        set_ex_frame.grid_columnconfigure(2, weight=1)
+
+        # Ziel-Datum
+        self.selected_zieldatum = tk.StringVar(value=self.data["exmatrikulationsdatum"])
+
+        self.label_zieldatum = ctk.CTkLabel(
+            set_ex_frame, text="Wann wurdest Du exmatrikuliert?"
+        )
+        self.label_zieldatum.grid(row=1, column=0, sticky="w", padx=10, pady=10)
+
+        self.button_zieldatum = ctk.CTkButton(
+            set_ex_frame,
+            text="Exmatrikulationsdatum wählen",
+            command=self.ziel_datum_calendar_at_button,
+        )
+        self.button_zieldatum.grid(row=1, column=1, padx=10, pady=10)
+
+        self.label_zieldatum_variable = ctk.CTkLabel(
+            set_ex_frame, textvariable=self.selected_zieldatum
+        )
+        self.label_zieldatum_variable.grid(
+            row=1, column=0, sticky="e", padx=10, pady=10
+        )
+
+        self.selected_zieldatum_real: str
+
+        # Submit-Buttons
+        self.button_datum_submit = ctk.CTkButton(
+            set_ex_frame,
+            text="Exmatrikulationsdatum speichern",
+            command=self.datum_submit,
+        )
+        self.button_datum_submit.grid(row=1, column=2, padx=10, pady=10, sticky="e")
+        self.label_leere_felder = ctk.CTkLabel(set_ex_frame, text="", text_color=ROT)
+        self.label_leere_felder.grid(row=2, column=2, padx=10, pady=10, sticky="e")
+
+        if self.data["exmatrikulationsdatum"]:
+            self.button_zieldatum.configure(state="disabled")
+            self.button_datum_submit.configure(state="disabled")
+
+    def datum_submit(self):
+        try:
+            self.selected_zieldatum_str = self.selected_zieldatum_real
+        except AttributeError:
+            self.label_leere_felder.configure(
+                text="Exmatrikulationsdatum nicht ausgewählt."
+            )
+            return
+
+        self.controller.change_exmatrikulationsdatum(
+            datetime.date.fromisoformat(self.selected_zieldatum_str)
+        )
+
+    def ziel_datum_calendar_at_button(self):
+        self.ziel_datum_calendar(anchor=self.button_zieldatum)
+
+    def ziel_datum_calendar(self, anchor):
+        top = ctk.CTkToplevel(self)
+        top.overrideredirect(True)
+        top.transient(self.winfo_toplevel())
+        top.attributes("-topmost", True)
+        top.grab_set()
+        top.bind("<FocusOut>", lambda e: top.destroy())
+
+        bx = anchor.winfo_rootx()
+        by = anchor.winfo_rooty()
+        bw = anchor.winfo_width()
+        bh = anchor.winfo_height()
+
+        x = bx
+        y = by + bh
+
+        popup_w, popup_h = 320, 320
+        sw = top.winfo_screenwidth()
+        sh = top.winfo_screenheight()
+
+        if x + popup_w > sw:
+            x = max(0, bx + bw - popup_w)
+        if y + popup_h > sh:
+            y = max(0, by - popup_h)
+
+        top.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
+
+        mindate_ziel = self.data["startdatum"]
+        maxdate_ziel = datetime.date.today()
+        top.title("Exmatrikulationsdatum auswählen")
+
+        cal_ziel = Calendar(
+            top,
+            font="Arial 14",
+            selectmode="day",
+            locale="de_DE",
+            date_pattern="yyyy-mm-dd",
+            mindate=mindate_ziel,
+            maxdate=maxdate_ziel,
+            # disabledforeground="red",
+            showweeknumbers=False,
+        )
+        cal_ziel.selection_set(self.data["zieldatum"])
+
+        cal_ziel.pack(fill="both", expand=True)
+
+        def save():
+            self.selected_zieldatum.set(cal_ziel.get_date())
+            self.selected_zieldatum_real = cal_ziel.get_date()
+            top.destroy()
+
+        self.save_button_ziel = ctk.CTkButton(top, text="ok", command=save)
+        self.save_button_ziel.pack(pady=10)
 
 
 class ZieleFrame(ctk.CTkFrame):
-    def __init__(self, master, controller: Controller, go_to_dashboard):
+    def __init__(self, master, controller: Controller, go_to_dashboard, go_to_settings):
         super().__init__(master, fg_color="transparent")
-        # TODO
+
+        self.controller = controller
+        self.go_to_dashboard = go_to_dashboard
+        self.go_to_settings = go_to_settings
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
+
+        # DATA
+        self.data = self.controller.load_dashboard_data()
+
+        # FONTS
+        H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
+        # H1notitalic = ctk.CTkFont(
+        #     family="Segoe UI", size=84, weight="normal", slant="roman"
+        # )
+        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
+        # H2italic = ctk.CTkFont(
+        #     family="Segoe UI", size=32, weight="normal", slant="italic"
+        # )
+        # H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
+        # INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
+        MATERIAL_FONT = ctk.CTkFont(
+            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
+        )
+
+        ziele_frame = ctk.CTkFrame(self, fg_color="gray95")
+        ziele_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=5, pady=0)
+
+        # SETTINGS FRAME ÜBERSCHRIFT
+        ziele_frame.grid_columnconfigure(0, weight=1)
+        ziele_frame.grid_columnconfigure(1, weight=0)
+
+        ziele_ueber_label = ctk.CTkLabel(
+            ziele_frame, text="Änder Deine Ziele:", font=H1, justify="left"
+        )
+        ziele_ueber_label.grid(row=0, sticky="nw", padx=10, pady=0)
+
+        ziele_close_button = ctk.CTkButton(
+            ziele_frame,
+            text="Close",
+            font=MATERIAL_FONT,
+            width=10,
+            fg_color="transparent",
+            text_color="black",
+            hover_color="gray90",
+            border_color="black",
+            command=lambda: self.after(0, self.go_to_dashboard),
+        )
+        ziele_close_button.grid(row=0, column=1, sticky="ne")
+
+        zs_frame = ctk.CTkFrame(self, fg_color="gray95")
+        zs_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=0)
+
+        zs_frame.grid_columnconfigure(0, weight=1)
+        zs_frame.grid_columnconfigure(1, weight=1)
+        zs_frame.grid_columnconfigure(2, weight=1)
+
+        # Ziel-Note
+        self.entry_zielnote: float = self.data["zielnote"]
+        self.slider_zielnote = ctk.CTkSlider(
+            zs_frame,
+            from_=1,
+            to=4,
+            number_of_steps=30,
+            command=self.slider_zielnote_event,
+        )
+        self.slider_zielnote.set(self.entry_zielnote)
+        self.slider_zielnote.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        self.label_zielnote = ctk.CTkLabel(
+            zs_frame,
+            text=f"Deine Wunsch-Abschlussnote: {round(self.slider_zielnote.get(), 1)}",
+        )
+        self.label_zielnote.grid(row=0, column=0, sticky="w", padx=10, pady=10)
+
+        # Ziel-Datum
+        self.selected_zieldatum = tk.StringVar(value=self.data["zieldatum"])
+
+        self.label_zieldatum = ctk.CTkLabel(
+            zs_frame, text="Bis wann möchtest Du Dein Studium beenden?"
+        )
+        self.label_zieldatum.grid(row=1, column=0, sticky="w", padx=10, pady=10)
+
+        self.button_zieldatum = ctk.CTkButton(
+            zs_frame,
+            text="Zieldatum auswählen",
+            command=self.ziel_datum_calendar_at_button,
+        )
+        self.button_zieldatum.grid(row=1, column=1, padx=10, pady=10)
+
+        self.label_zieldatum_variable = ctk.CTkLabel(
+            zs_frame, textvariable=self.selected_zieldatum
+        )
+        self.label_zieldatum_variable.grid(
+            row=1, column=0, sticky="e", padx=10, pady=10
+        )
+
+        self.selected_zieldatum_real: str
+
+        # Submit-Buttons
+        self.button_datum_submit = ctk.CTkButton(
+            zs_frame, text="Zieldatum speichern", command=self.datum_submit
+        )
+        self.button_datum_submit.grid(row=1, column=2, padx=10, pady=10, sticky="e")
+        self.label_leere_felder = ctk.CTkLabel(zs_frame, text="", text_color=ROT)
+        self.label_leere_felder.grid(row=2, column=2, padx=10, pady=10, sticky="e")
+
+        self.button_note_submit = ctk.CTkButton(
+            zs_frame, text="Wunschnote speichern", command=self.noten_submit
+        )
+        self.button_note_submit.grid(row=0, column=2, padx=10, pady=10, sticky="e")
+
+    def datum_submit(self):
+        try:
+            self.selected_zieldatum_str = self.selected_zieldatum_real
+        except AttributeError:
+            self.label_leere_felder.configure(text="Zieldatum nicht ausgewählt.")
+            return
+
+        self.controller.change_zieldatum(
+            datetime.date.fromisoformat(self.selected_zieldatum_str)
+        )
+
+    def noten_submit(self):
+        self.selected_zielnote = self.entry_zielnote
+        self.controller.change_zielnote(self.selected_zielnote)
+
+    def ziel_datum_calendar_at_button(self):
+        self.ziel_datum_calendar(anchor=self.button_zieldatum)
+
+    def ziel_datum_calendar(self, anchor):
+        top = ctk.CTkToplevel(self)
+        top.overrideredirect(True)
+        top.transient(self.winfo_toplevel())
+        top.attributes("-topmost", True)
+        top.grab_set()
+        top.bind("<FocusOut>", lambda e: top.destroy())
+
+        bx = anchor.winfo_rootx()
+        by = anchor.winfo_rooty()
+        bw = anchor.winfo_width()
+        bh = anchor.winfo_height()
+
+        x = bx
+        y = by + bh
+
+        popup_w, popup_h = 320, 320
+        sw = top.winfo_screenwidth()
+        sh = top.winfo_screenheight()
+
+        if x + popup_w > sw:
+            x = max(0, bx + bw - popup_w)
+        if y + popup_h > sh:
+            y = max(0, by - popup_h)
+
+        top.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
+
+        mindate_ziel = self.data["startdatum"]
+        maxdate_ziel = datetime.date(year=2200, month=12, day=31)
+        top.title("Zieldatum auswählen")
+
+        cal_ziel = Calendar(
+            top,
+            font="Arial 14",
+            selectmode="day",
+            locale="de_DE",
+            date_pattern="yyyy-mm-dd",
+            mindate=mindate_ziel,
+            maxdate=maxdate_ziel,
+            # disabledforeground="red",
+            showweeknumbers=False,
+        )
+        cal_ziel.selection_set(self.data["zieldatum"])
+
+        cal_ziel.pack(fill="both", expand=True)
+
+        def save():
+            self.selected_zieldatum.set(cal_ziel.get_date())
+            self.selected_zieldatum_real = cal_ziel.get_date()
+            top.destroy()
+
+        self.save_button_ziel = ctk.CTkButton(top, text="ok", command=save)
+        self.save_button_ziel.pack(pady=10)
+
+    def slider_zielnote_event(self, value: float):
+        self.entry_zielnote = round(float(value), 1)
+        self.label_zielnote.configure(
+            text=f"Deine Wunschnote: {round(float(value), 1)}"
+        )
 
 
 class UeberFrame(ctk.CTkFrame):
@@ -2862,7 +3235,10 @@ class App(ctk.CTk):
             self.current_frame.destroy()
             self.update_idletasks()
         self.current_frame = ExFrame(
-            self, controller=self.controller, go_to_dashboard=self.show_dashboard
+            self,
+            controller=self.controller,
+            go_to_dashboard=self.show_dashboard,
+            go_to_settings=self.show_settings,
         )
         self.current_frame.pack(fill="both", expand=True)
 
@@ -2872,7 +3248,10 @@ class App(ctk.CTk):
             self.current_frame.destroy()
             self.update_idletasks()
         self.current_frame = ZieleFrame(
-            self, controller=self.controller, go_to_dashboard=self.show_dashboard
+            self,
+            controller=self.controller,
+            go_to_dashboard=self.show_dashboard,
+            go_to_settings=self.show_settings,
         )
         self.current_frame.pack(fill="both", expand=True)
 
