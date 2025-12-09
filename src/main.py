@@ -3,6 +3,7 @@ from email_validator import validate_email, EmailNotValidError
 from database import DatabaseManager
 from models import Enrollment, EnrollmentStatus, Student, Modul, Pruefungsleistung
 from hochschulen import hs_dict
+from hs_dict_kurz import hs_dict_kurz
 
 # import csv
 import datetime
@@ -138,6 +139,21 @@ class Controller:
             bisher = (datetime.date.today() - self.student.start_datum).days
             progress = round(max(0, min(bisher / dauer, 1)), 3)
         return progress
+
+    def get_semester_amount(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+
+        for semester in self.student.semester:
+            if semester.nummer == self.student.semester_anzahl:
+                dauer_aller_semester = (semester.ende - self.student.start_datum).days
+                dauer_start_ziel = (
+                    self.student.ziel_datum - self.student.start_datum
+                ).days
+                amount = round(
+                    max(0, min(dauer_aller_semester / dauer_start_ziel, 1)), 3
+                )
+                return amount
 
     def get_number_of_enrollments_with_status(self, status: EnrollmentStatus) -> int:
         if not self.student:
@@ -294,6 +310,18 @@ class Controller:
             if name not in hochschul_namen:
                 self.erstelle_hochschule(hochschul_name=name)
 
+    def get_hs_kurzname_if_notwendig(self, name):
+        if len(name) > 50:
+            for dictionary in hs_dict_kurz.values():
+                for long, short in dictionary.items():
+                    if long == name:
+                        return short
+                    else:
+                        pass
+            return name
+        else:
+            return name
+
     # gibt dict mit Hochschul-Namen zurück, die in csv sind + id als key
     def get_hochschulen_dict(self) -> dict[int, str]:
         hochschulen = self.db.lade_alle_hochschulen()
@@ -312,6 +340,19 @@ class Controller:
             for studiengang in studiengaenge:
                 studiengaenge_dict[studiengang.id] = studiengang.name
             return studiengaenge_dict
+        else:
+            return {0: ""}
+
+    def get_studiengang_id(self, studiengang_name, hochschule_id) -> dict[int, str]:
+        hochschule = self.db.lade_hochschule_mit_id(hochschule_id)
+        if hochschule:
+            studiengang = self.db.lade_studiengang_mit_name(
+                hochschule_id=hochschule.id, studiengang_name=studiengang_name
+            )
+            if studiengang:
+                return {studiengang.id: studiengang.name}
+            else:
+                return {0: ""}
         else:
             return {0: ""}
 
@@ -365,6 +406,12 @@ class Controller:
                     return str(enrollment.status)
         else:
             return None
+
+    def check_if_email_exists(self, email):
+        if self.db.lade_student(email=email):
+            return True
+        else:
+            return False
 
     def check_if_already_enrolled(self, enrollment_cache):
         if self.student:
@@ -533,7 +580,6 @@ class Controller:
             for studiengang in self.student.hochschule.studiengaenge
             if studiengang.name == value
         ]
-        # TODO: Sicherstellen, dass mit enrollments pls gelöscht werden, aber keine Module
         self.student.enrollments.clear()
         if studiengang:
             self.student.studiengang = studiengang[0]
@@ -568,7 +614,7 @@ class Controller:
     def change_exmatrikulationsdatum(self, value):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
-        self.student.werde_exmatrikuliert(value)
+        self.student.exmatrikulationsdatum = value
         self.db.session.commit()
 
     def logout(self) -> None:

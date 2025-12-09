@@ -204,8 +204,15 @@ class DatabaseManager:
         return self.session.scalars(stmt).first()
 
     def lade_studiengang_mit_id(self, id):
-        self.id = id
-        stmt = select(Studiengang).where(Studiengang.id == self.id)
+        stmt = select(Studiengang).where(Studiengang.id == id)
+        return self.session.scalars(stmt).first()
+
+    def lade_studiengang_mit_name(self, hochschule_id, studiengang_name):
+        stmt = (
+            select(Studiengang)
+            .where(Studiengang.hochschule_id == hochschule_id)
+            .where(Studiengang.name == studiengang_name)
+        )
         return self.session.scalars(stmt).first()
 
     def lade_alle_studiengaenge_von_hochschule(self, hochschule: Hochschule):

@@ -219,11 +219,12 @@ class Student(Base):
         return durchschnittsnote
 
     @hybrid_property
-    def exmatrikulationsdatum(self):
+    def exmatrikulationsdatum(self):  # type: ignore[reportRedeclaration]
         return self._exmatrikulationsdatum
 
-    def werde_exmatrikuliert(self, exmatrikulationsdatum: date):
-        self._exmatrikulationsdatum = exmatrikulationsdatum
+    @exmatrikulationsdatum.setter
+    def exmatrikulationsdatum(self, value):
+        self._exmatrikulationsdatum = value
 
 
 # Hochschule
