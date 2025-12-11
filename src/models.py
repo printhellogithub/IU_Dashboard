@@ -485,7 +485,7 @@ class Enrollment(Base):
 # Prüfungsleistung
 class Pruefungsleistung(Base):
     __tablename__ = "pruefungsleistung"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
     # teilpruefung nr. von insgesamt enrollment.anzahl_pruefungsleistunen
     _teilpruefung: Mapped[int] = mapped_column(Integer)
     # bei mehreren Teilprüfungen -> Gewicht pro note

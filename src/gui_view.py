@@ -1,13 +1,15 @@
 from __future__ import annotations
 import customtkinter as ctk
 import datetime
+from pathlib import Path
 import tkinter as tk
+import tkinter.ttk as ttk
 from tkcalendar import Calendar
 from email_validator import EmailNotValidError
 import textwrap
 import webbrowser
 
-from main import Controller
+from src.main import Controller
 
 # GLOBAL
 BACKGROUND = "#FFFFFF"
@@ -21,6 +23,9 @@ GRAU = "#D9D9D9"
 DUNKELBLAU = "#0749BB"
 BLAU = "#0A64FF"
 HELLBLAU = "#B5D0FF"
+
+FONT_PATH_NOTO = Path("assets/fonts/NotoSans_Condensed-Light.ttf")
+FONT_PATH_MATERIAL = Path("assets/fonts/MaterialSymbolsSharp-Light.ttf")
 
 
 def from_iso_to_ddmmyyyy(date) -> str:
@@ -37,6 +42,56 @@ def from_iso_to_ddmmyyyy(date) -> str:
         return ""
     else:
         return "irgendwas ist schiefgelaufen"
+
+
+class Fonts:
+    def __init__(self):
+        # self.LOGIN = ctk.CTkFont(family="Segoe UI", size=140, weight="normal", slant="italic")
+        # self.H1_italic = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
+        # self.H1 = ctk.CTkFont(
+        #     family="Segoe UI", size=84, weight="normal", slant="roman"
+        # )
+        # self.H1_5_italic = ctk.CTkFont(
+        #     family="Segoe UI", size=48, weight="normal", slant="italic"
+        # )
+        # self.H2_italic = ctk.CTkFont(
+        #     family="Segoe UI", size=32, weight="normal", slant="italic"
+        # )
+        # self.H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
+        # self.H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
+        # self.TEXT = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
+
+        self.ICONS = ctk.CTkFont(
+            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
+        )
+        self.ICONS_BIG = ctk.CTkFont(
+            family="Material Symbols Sharp", size=42, weight="normal", slant="roman"
+        )
+        # self.CAL = ctk.CTkFont(family="Segoe UI", size=12, weight="normal", slant="roman")
+        self.LOGIN = ctk.CTkFont(
+            family="Noto Sans Condensed", size=140, weight="normal", slant="italic"
+        )
+        self.H1_italic = ctk.CTkFont(
+            family="Noto Sans Condensed", size=84, weight="normal", slant="italic"
+        )
+        self.H1 = ctk.CTkFont(
+            family="Noto Sans Condensed", size=84, weight="normal", slant="roman"
+        )
+        self.H1_5_italic = ctk.CTkFont(
+            family="Noto Sans Condensed", size=48, weight="normal", slant="italic"
+        )
+        self.H2_italic = ctk.CTkFont(
+            family="Noto Sans Condensed", size=32, weight="normal", slant="italic"
+        )
+        self.H2 = ctk.CTkFont(
+            family="Noto Sans Condensed", size=32, weight="normal", slant="roman"
+        )
+        self.H3 = ctk.CTkFont(
+            family="Noto Sans Condensed", size=22, weight="normal", slant="roman"
+        )
+        self.TEXT = ctk.CTkFont(
+            family="Noto Sans Condensed", size=16, weight="normal", slant="roman"
+        )
 
 
 # EXTRA-Klasse: Searchable Combobox
@@ -164,10 +219,6 @@ class DynamicEntries(ctk.CTkFrame):
         self.max_rows = max_rows
         self.rows: list[dict[str, object]] = []
 
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        )
-
         # Layout
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -184,10 +235,14 @@ class DynamicEntries(ctk.CTkFrame):
         self.title_nummer = ctk.CTkLabel(self.header, text=label_nummer)
         self.title_nummer.grid(row=0, column=1, sticky="e", padx=5)
 
+        icons = ctk.CTkFont(
+            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
+        )
+
         self.add_button = ctk.CTkButton(
             self.header,
             text="add_circle",
-            font=MATERIAL_FONT,
+            font=icons,
             width=36,
             text_color="black",
             fg_color="transparent",
@@ -273,9 +328,9 @@ class LoginFrame(ctk.CTkFrame):
         self.go_to_dashboard = go_to_dashboard
         self.go_to_new_user = go_to_new_user
 
-        H1 = ctk.CTkFont(family="Segoe UI", size=140, weight="normal", slant="italic")
+        # H1 = ctk.CTkFont(family="Segoe UI", size=140, weight="normal", slant="italic")
 
-        ctk.CTkLabel(self, text="DASHBOARD", font=H1).pack(pady=20)
+        ctk.CTkLabel(self, text="DASHBOARD", font=master.fonts.LOGIN).pack(pady=20)
 
         self.entry_email = ctk.CTkEntry(self, placeholder_text="Email-Adresse")
         self.entry_email.focus()
@@ -337,22 +392,6 @@ class NewUserFrame(ctk.CTkFrame):
         self.go_to_login = go_to_login
         self.go_to_StudiengangAuswahl = go_to_StudiengangAuswahl
 
-        # FONTS
-        # H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
-        # H1notitalic = ctk.CTkFont(
-        #     family="Segoe UI", size=84, weight="normal", slant="roman"
-        # )
-        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
-        # H2italic = ctk.CTkFont(
-        #     family="Segoe UI", size=32, weight="normal", slant="italic"
-        # )
-        # H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
-        # INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
-        # CAL = ctk.CTkFont(family="Segoe UI", size=12, weight="normal", slant="roman")
-
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        )
         H15italic = ctk.CTkFont(
             family="Segoe UI", size=48, weight="normal", slant="italic"
         )
@@ -381,7 +420,7 @@ class NewUserFrame(ctk.CTkFrame):
         header_close_button = ctk.CTkButton(
             header_frame,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -703,6 +742,14 @@ class NewUserFrame(ctk.CTkFrame):
             selectforeground=GELB,
             normalforeground=BLAU,
             weekendforeground=BLAU,
+            weekendbackground="gray90",
+            background="gray95",
+            foreground="black",
+            selectbackground=DUNKELBLAU,
+            headersbackground="gray95",
+            headersforeground="black",
+            disabledforeground="gray50",
+            disabledbackground="gray80",
         )
 
         cal_start.pack(fill="both", expand=True)
@@ -771,6 +818,14 @@ class NewUserFrame(ctk.CTkFrame):
             selectforeground=GELB,
             normalforeground=BLAU,
             weekendforeground=BLAU,
+            weekendbackground="gray90",
+            background="gray95",
+            foreground="black",
+            selectbackground=DUNKELBLAU,
+            headersbackground="gray95",
+            headersforeground="black",
+            disabledforeground="gray50",
+            disabledbackground="gray80",
         )
 
         cal_ziel.pack(fill="both", expand=True)
@@ -827,20 +882,10 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         self.go_to_new_user = go_to_new_user
 
         # FONTS
-        # H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
-        # H1notitalic = ctk.CTkFont(
-        #     family="Segoe UI", size=84, weight="normal", slant="roman"
-        # )
-        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
         H2italic = ctk.CTkFont(
             family="Segoe UI", size=32, weight="normal", slant="italic"
         )
-        # H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
-        # INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
 
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        )
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=0)
@@ -865,7 +910,7 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         header_close_button = ctk.CTkButton(
             header_frame,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -1049,10 +1094,6 @@ class DashboardFrame(ctk.CTkFrame):
         H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
         INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
 
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        )
-
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=0)
@@ -1119,7 +1160,7 @@ class DashboardFrame(ctk.CTkFrame):
             text_color="black",
             hover_color="gray95",
             border_color="black",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             anchor="e",
             command=self.menu_on_button,
         )
@@ -1320,6 +1361,7 @@ class DashboardFrame(ctk.CTkFrame):
                         text="check_circle",
                         text_color=GRUEN,
                         fg_color="transparent",
+                        hover_color=BACKGROUND,
                         border_width=0,
                         border_spacing=0,
                         corner_radius=0,
@@ -1340,7 +1382,7 @@ class DashboardFrame(ctk.CTkFrame):
                         text="pending",
                         text_color=GELB,
                         fg_color="transparent",
-                        hover_color="white",
+                        hover_color=BACKGROUND,
                         border_width=0,
                         border_spacing=0,
                         corner_radius=0,
@@ -1361,6 +1403,7 @@ class DashboardFrame(ctk.CTkFrame):
                         text="cancel",
                         text_color=ROT,
                         fg_color="transparent",
+                        hover_color=BACKGROUND,
                         border_width=0,
                         border_spacing=0,
                         corner_radius=0,
@@ -1605,19 +1648,8 @@ class AddEnrollmentFrame(ctk.CTkScrollableFrame):
         self.go_to_enrollment = go_to_enrollment
 
         # FONTS
-        # H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
-        # H1notitalic = ctk.CTkFont(
-        #     family="Segoe UI", size=84, weight="normal", slant="roman"
-        # )
-        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
         H2italic = ctk.CTkFont(
             family="Segoe UI", size=32, weight="normal", slant="italic"
-        )
-        # H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
-        # INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
-
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
         )
 
         self.grid_columnconfigure(0, weight=1)
@@ -1644,7 +1676,7 @@ class AddEnrollmentFrame(ctk.CTkScrollableFrame):
         header_close_button = ctk.CTkButton(
             header_frame,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -1893,6 +1925,14 @@ class AddEnrollmentFrame(ctk.CTkScrollableFrame):
             selectforeground=GELB,
             normalforeground=BLAU,
             weekendforeground=BLAU,
+            weekendbackground="gray90",
+            background="gray95",
+            foreground="black",
+            selectbackground=DUNKELBLAU,
+            headersbackground="gray95",
+            headersforeground="black",
+            disabledforeground="gray50",
+            disabledbackground="gray80",
         )
 
         cal_start.pack(fill="both", expand=True)
@@ -1978,20 +2018,11 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
         abgeschlossen_frame.grid(row=3, column=1, sticky="nsew", padx=5, pady=5)
 
         # FONTS
-        # H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
-        # H1notitalic = ctk.CTkFont(
-        #     family="Segoe UI", size=84, weight="normal", slant="roman"
-        # )
-        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
         H2italic = ctk.CTkFont(
             family="Segoe UI", size=32, weight="normal", slant="italic"
         )
         H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
         INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
-
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        )
 
         self.grid_columnconfigure(0, weight=1, uniform="half")
         self.grid_columnconfigure(1, weight=1, uniform="half")
@@ -2023,7 +2054,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
         modul_close_button = ctk.CTkButton(
             modul_frame,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -2143,7 +2174,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
                             defaulttext="check_box_outline_blank",
                             text="check_box_outline_blank",
                             text_color="black",
-                            font=MATERIAL_FONT,
+                            font=master.fonts.ICONS,
                             command=lambda pl_id=versuch["id"],
                             e_id=self.enrollment_id: self.after(
                                 0, self.go_to_pl, pl_id, e_id
@@ -2167,7 +2198,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
                             hover_color="gray95",
                             text_color=GRAU,
                             text="Select",
-                            font=MATERIAL_FONT,
+                            font=master.fonts.ICONS,
                             state="disabled",
                         )
                         disabled_button.grid(
@@ -2184,7 +2215,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
                             hover_color="gray95",
                             text_color=GRUEN,
                             text="select_check_box",
-                            font=MATERIAL_FONT,
+                            font=master.fonts.ICONS,
                             command=lambda pl_id=versuch["id"],
                             e_id=self.enrollment_id: self.after(
                                 0, self.go_to_pl, pl_id, e_id
@@ -2208,7 +2239,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
                             hover_color="gray95",
                             text_color=ROT,
                             text="disabled_by_default",
-                            font=MATERIAL_FONT,
+                            font=master.fonts.ICONS,
                             command=lambda pl_id=versuch["id"],
                             e_id=self.enrollment_id: self.after(
                                 0, self.go_to_pl, pl_id, e_id
@@ -2321,11 +2352,6 @@ class PLAddFrame(ctk.CTkFrame):
             family="Segoe UI", size=32, weight="normal", slant="italic"
         )
         H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
-        # INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
-
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        )
 
         pl_frame = ctk.CTkFrame(
             self, fg_color=BACKGROUND, border_color="black", border_width=2
@@ -2359,7 +2385,7 @@ class PLAddFrame(ctk.CTkFrame):
         pl_close_button = ctk.CTkButton(
             pl_frame,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -2544,6 +2570,14 @@ class PLAddFrame(ctk.CTkFrame):
             selectforeground=GELB,
             normalforeground=BLAU,
             weekendforeground=BLAU,
+            weekendbackground="gray90",
+            background="gray95",
+            foreground="black",
+            selectbackground=DUNKELBLAU,
+            headersbackground="gray95",
+            headersforeground="black",
+            disabledforeground="gray50",
+            disabledbackground="gray80",
         )
 
         cal_start.pack(fill="both", expand=True)
@@ -2594,20 +2628,11 @@ class SettingsFrame(ctk.CTkScrollableFrame):
         self.data = self.controller.load_dashboard_data()
 
         # FONTS
-        # H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
-        # H1notitalic = ctk.CTkFont(
-        #     family="Segoe UI", size=84, weight="normal", slant="roman"
-        # )
-        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
+
         H2italic = ctk.CTkFont(
             family="Segoe UI", size=32, weight="normal", slant="italic"
         )
-        # H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
         INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
-
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        )
 
         settings_frame = ctk.CTkFrame(
             self, fg_color=BACKGROUND, border_color="black", border_width=2
@@ -2626,7 +2651,7 @@ class SettingsFrame(ctk.CTkScrollableFrame):
         settings_close_button = ctk.CTkButton(
             settings_frame,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -3027,14 +3052,14 @@ class SettingsFrame(ctk.CTkScrollableFrame):
 
     def save_name(self):
         if self.verify_input(self.entry_name.get()):
-            self.controller.change_pw(self.entry_name.get())
+            self.controller.change_name(self.entry_name.get())
             self.name_not_valid.configure(text="Neuer Name gespeichert")
         else:
             self.name_not_valid.configure(text="Nicht ausgefüllt")
 
     def save_matrikelnummer(self):
         if self.verify_input(self.entry_matrikelnummer.get()):
-            self.controller.change_pw(self.entry_matrikelnummer.get())
+            self.controller.change_matrikelnummer(self.entry_matrikelnummer.get())
             self.mk_not_valid.configure(text="Neue Matrikelnummer gespeichert")
         else:
             self.mk_not_valid.configure(text="Nicht ausgefüllt")
@@ -3255,6 +3280,14 @@ class SettingsFrame(ctk.CTkScrollableFrame):
             selectforeground=GELB,
             normalforeground=BLAU,
             weekendforeground=BLAU,
+            weekendbackground="gray90",
+            background="gray95",
+            foreground="black",
+            selectbackground=DUNKELBLAU,
+            headersbackground="gray95",
+            headersforeground="black",
+            disabledforeground="gray50",
+            disabledbackground="gray80",
         )
 
         cal_start.pack(fill="both", expand=True)
@@ -3317,18 +3350,8 @@ class ExFrame(ctk.CTkFrame):
         self.data = self.controller.load_dashboard_data()
 
         # FONTS
-        # H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
-        # H1notitalic = ctk.CTkFont(
-        #     family="Segoe UI", size=84, weight="normal", slant="roman"
-        # )
-        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
         H2italic = ctk.CTkFont(
             family="Segoe UI", size=32, weight="normal", slant="italic"
-        )
-        # H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
-        # INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
         )
 
         ex_frame = ctk.CTkFrame(
@@ -3348,7 +3371,7 @@ class ExFrame(ctk.CTkFrame):
         ex_close_button = ctk.CTkButton(
             ex_frame,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -3497,6 +3520,14 @@ class ExFrame(ctk.CTkFrame):
             selectforeground=GELB,
             normalforeground=BLAU,
             weekendforeground=BLAU,
+            weekendbackground="gray90",
+            background="gray95",
+            foreground="black",
+            selectbackground=DUNKELBLAU,
+            headersbackground="gray95",
+            headersforeground="black",
+            disabledforeground="gray50",
+            disabledbackground="gray80",
         )
         cal_ziel.selection_set(self.data["zieldatum"])
 
@@ -3540,18 +3571,8 @@ class ZieleFrame(ctk.CTkFrame):
         self.data = self.controller.load_dashboard_data()
 
         # FONTS
-        # H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
-        # H1notitalic = ctk.CTkFont(
-        #     family="Segoe UI", size=84, weight="normal", slant="roman"
-        # )
-        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
         H2italic = ctk.CTkFont(
             family="Segoe UI", size=32, weight="normal", slant="italic"
-        )
-        # H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
-        # INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
         )
 
         ziele_frame = ctk.CTkFrame(
@@ -3571,7 +3592,7 @@ class ZieleFrame(ctk.CTkFrame):
         ziele_close_button = ctk.CTkButton(
             ziele_frame,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -3739,6 +3760,14 @@ class ZieleFrame(ctk.CTkFrame):
             selectforeground=GELB,
             normalforeground=BLAU,
             weekendforeground=BLAU,
+            weekendbackground="gray90",
+            background="gray95",
+            foreground="black",
+            selectbackground=DUNKELBLAU,
+            headersbackground="gray95",
+            headersforeground="black",
+            disabledforeground="gray50",
+            disabledbackground="gray80",
         )
         cal_ziel.selection_set(self.data["zieldatum"])
 
@@ -3775,23 +3804,13 @@ class UeberFrame(ctk.CTkFrame):
 
         # FONTS
         H1 = ctk.CTkFont(family="Segoe UI", size=84, weight="normal", slant="italic")
-        # H1notitalic = ctk.CTkFont(
-        #     family="Segoe UI", size=84, weight="normal", slant="roman"
-        # )
-        # H2 = ctk.CTkFont(family="Segoe UI", size=32, weight="normal", slant="roman")
-        # H2italic = ctk.CTkFont(
-        #     family="Segoe UI", size=32, weight="normal", slant="italic"
-        # )
         H3 = ctk.CTkFont(family="Segoe UI", size=22, weight="normal", slant="roman")
         INFO = ctk.CTkFont(family="Segoe UI", size=16, weight="normal", slant="roman")
-        MATERIAL_FONT = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        )
 
         ueber_close_button = ctk.CTkButton(
             self,
             text="Close",
-            font=MATERIAL_FONT,
+            font=master.fonts.ICONS,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -3855,12 +3874,21 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__(fg_color=BACKGROUND)
 
-        self.controller = Controller()
+        ctk.FontManager.load_font(str(FONT_PATH_NOTO))
+        ctk.FontManager.load_font(str(FONT_PATH_MATERIAL))
+        self.fonts = Fonts()
+
+        self.controller = Controller(seed=True)
         self.title("Dashboard")
         self.geometry("960x640")  # orig: 960x540
         self.minsize(960, 640)
         self.maxsize(1920, 1080)
         ctk.set_appearance_mode("light")
+        style = ttk.Style()
+        try:
+            style.theme_use("default")
+        except Exception:
+            pass
         self.center_window()
         self.current_frame = None
         self.show_login()

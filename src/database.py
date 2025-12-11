@@ -1,5 +1,5 @@
 from sqlalchemy.orm import sessionmaker, selectinload
-from models import (
+from src.models import (
     Base,
     EnrollmentStatus,
     Student,
@@ -19,7 +19,7 @@ import csv
 class DatabaseManager:
     def __init__(self):
         # Verbindung zur Datenbank
-        self.engine = create_engine("sqlite+pysqlite:///data.db", echo=False)
+        self.engine = create_engine("sqlite+pysqlite:///data/data.db", echo=False)
         # Alle Tabellen erzeugen
         Base.metadata.create_all(self.engine)
         self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
@@ -198,7 +198,6 @@ class DatabaseManager:
         stmt = select(Semester).where(Semester.student_id == student.id)
         return self.session.scalars(stmt).first()
 
-    # where-stmt wird fehlschlagen
     def lade_studiengang(self, student: Student):
         stmt = select(Studiengang).where(Studiengang.id == student.studiengang.id)
         return self.session.scalars(stmt).first()
@@ -228,7 +227,6 @@ class DatabaseManager:
         stmt = select(Hochschule).where(Hochschule.id == id)
         return self.session.scalars(stmt).first()
 
-    # where-stmt wird fehlschlagen
     def lade_hochschule(self, student: Student):
         stmt = select(Hochschule).where(Hochschule.id == student.hochschule_id)
         return self.session.scalars(stmt).first()
@@ -249,7 +247,6 @@ class DatabaseManager:
         )
         return list(self.session.scalars(stmt))
 
-    # Notwendig?!?
     def lade_enrollment_mit_id(self, id: int):
         stmt = select(Enrollment).where(Enrollment.id == id)
         return self.session.scalars(stmt).first()
@@ -265,35 +262,3 @@ class DatabaseManager:
     def lade_semester_von_student(self, student: Student):
         stmt = select(Semester).where(Semester.student_id == student.id)
         return list(self.session.scalars(stmt))
-
-    def change_student(self, student: Student):
-        pass
-
-    def change_enrollment(self, enrollment: Enrollment):
-        pass
-
-    def change_pruefungsleistung(self, pruefungsleistung: Pruefungsleistung):
-        pass
-
-    def change_kurs(self, kurs: Kurs):
-        pass
-
-    def change_modul(self, modul: Modul):
-        pass
-
-    def change_semester(self, semester: Semester):
-        pass
-
-    def change_studiengang(self, studiengang: Studiengang):
-        pass
-
-    def change_hochschule(self, hochschule: Hochschule):
-        pass
-
-    # wurde ersetzt durch enrollment.check_status()
-
-    # def change_enrollment_status(
-    #     self, enrollment: Enrollment, neuer_status: EnrollmentStatus
-    # ) -> None:
-    #     enrollment.status = neuer_status
-    #     self.session.commit()

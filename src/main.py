@@ -1,9 +1,9 @@
 from __future__ import annotations
 from email_validator import validate_email, EmailNotValidError
-from database import DatabaseManager
-from models import Enrollment, EnrollmentStatus, Student, Modul, Pruefungsleistung
-from hochschulen import hs_dict
-from hs_dict_kurz import hs_dict_kurz
+from src.database import DatabaseManager
+from src.models import Enrollment, EnrollmentStatus, Student, Modul, Pruefungsleistung
+from data.hochschulen import hs_dict
+from data.hs_dict_kurz import hs_dict_kurz
 
 # import csv
 import datetime
@@ -11,11 +11,11 @@ from dateutil.relativedelta import relativedelta
 
 
 class Controller:
-    def __init__(self):
-        self.db = DatabaseManager()
+    def __init__(self, db: DatabaseManager | None = None, seed: bool = True):
+        self.db = db or DatabaseManager()
         self.student: Student | None = None
-
-        self.erstelle_hochschulen_von_hs_dict()
+        if seed:
+            self.erstelle_hochschulen_von_hs_dict()
 
     # --- Account & Login ---
     def login(self, email: str, password: str):
@@ -151,7 +151,9 @@ class Controller:
                     self.student.ziel_datum - self.student.start_datum
                 ).days
                 amount = round(
-                    max(0, min(dauer_aller_semester / dauer_start_ziel, 1)), 3
+                    # max(0, min(dauer_aller_semester / dauer_start_ziel, 1)), 3
+                    max(0, (dauer_aller_semester / dauer_start_ziel)),
+                    3,
                 )
                 return amount
 
@@ -471,6 +473,8 @@ class Controller:
                     note=None,
                     datum=None,
                 )
+        # erzeugte Objekte bekommen IDs von DB.
+        self.db.session.flush()
 
         enrollment_dict = {
             "id": enrollment.id,
@@ -585,7 +589,7 @@ class Controller:
             self.student.studiengang = studiengang[0]
         else:
             studiengang = self.erstelle_studiengang(
-                self.student.studiengang.name,
+                value,
                 self.student.studiengang.gesamt_ects_punkte,
             )
             for k, v in studiengang.items():
