@@ -1,4 +1,4 @@
-from src.gui_view import from_iso_to_ddmmyyyy
+from src.app import from_iso_to_ddmmyyyy
 import datetime
 
 
