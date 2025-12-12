@@ -200,23 +200,25 @@ class Student(Base):
         # verlegt nach Controller
         pass
 
-    def berechne_gesamt_ects(self):
-        gesamt_ects_punkte = 0
-        for enrollment in self.enrollments:
-            if enrollment.check_status():
-                gesamt_ects_punkte += enrollment.modul.ects_punkte
-        return gesamt_ects_punkte
+    # In Verwendung ?
+    # def berechne_gesamt_ects(self):
+    #     gesamt_ects_punkte = 0
+    #     for enrollment in self.enrollments:
+    #         if enrollment.check_status():
+    #             gesamt_ects_punkte += enrollment.modul.ects_punkte
+    #     return gesamt_ects_punkte
 
-    def berechne_durchschnittsnote(self):
-        noten = []
-        for enrollment in self.enrollments:
-            for pruefungsleistung in enrollment.pruefungsleistungen:
-                if pruefungsleistung.ist_bestanden():
-                    noten.append(pruefungsleistung.note)
-                else:
-                    pass
-        durchschnittsnote = sum(noten) / len(noten)
-        return durchschnittsnote
+    # In Verwendung ?
+    # def berechne_durchschnittsnote(self):
+    #     noten = []
+    #     for enrollment in self.enrollments:
+    #         for pruefungsleistung in enrollment.pruefungsleistungen:
+    #             if pruefungsleistung.ist_bestanden():
+    #                 noten.append(pruefungsleistung.note)
+    #             else:
+    #                 pass
+    #     durchschnittsnote = sum(noten) / len(noten)
+    #     return durchschnittsnote
 
     @hybrid_property
     def exmatrikulationsdatum(self):  # type: ignore[reportRedeclaration]
@@ -283,13 +285,13 @@ class Studiengang(Base):
     def gesamt_ects_punkte(self, value: int):
         self._gesamt_ects_punkte = value
 
-    def erstelle_modul(self):
-        # verlegen nach controller?
-        pass
+    # def erstelle_modul(self):
+    #     # verlegen nach controller?
+    #     pass
 
-    def fuege_kurs_zu_modul_hinzu(self):
-        # heißt Kurs braucht .modul und andersherum, evtl. schon durch programierung erzwungen?
-        pass
+    # def fuege_kurs_zu_modul_hinzu(self):
+    # müsste bei enrollment-erstellung drin sein.
+    #     pass
 
 
 # Modul

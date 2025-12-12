@@ -8,26 +8,35 @@ from data.hs_dict_kurz import hs_dict_kurz
 # import csv
 import datetime
 from dateutil.relativedelta import relativedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Controller:
     def __init__(self, db: DatabaseManager | None = None, seed: bool = True):
         self.db = db or DatabaseManager()
+
         self.student: Student | None = None
         if seed:
             self.erstelle_hochschulen_von_hs_dict()
+            logger.debug("Hochschulen aus hs_dict erstellt, falls nicht vorhanden.")
+        logger.debug("Controller initialisiert")
 
     # --- Account & Login ---
     def login(self, email: str, password: str):
         verified_email = self.validate_email_for_login(email)
         if isinstance(verified_email, EmailNotValidError):
+            logger.debug(f"EmailNotValidError: {verified_email}")
             return False
-
+        logger.debug(f"Login-Versuch mit {verified_email}")
         student = self.db.lade_student_mit_beziehungen(verified_email)
         if student and student.verify_password(password):
             self.student = student
+            logger.info("Login erfolgreich: %s", self.student.email)
             return True
         else:
+            logger.info("Login fehlgeschlagen: %s", verified_email)
             return False
 
     def erstelle_account(self, cache: dict):
@@ -45,6 +54,7 @@ class Controller:
             ziel_datum=zieldatum,
             ziel_note=cache["zielnote"],
         )
+        logger.info("Student erstellt: %s", self.student.email)
         self.erstelle_semester_fuer_student(self.student)
         self.add_hochschule_zu_student(student=self.student, cache=cache)
         self.add_studiengang_zu_student(student=self.student, cache=cache)
@@ -54,6 +64,7 @@ class Controller:
         # self.db.session.refresh(self.student)
 
         self.db.session.commit()
+        logger.info("Account mit Beziehungen erstellt: %s", self.student.email)
 
     # Relationships bei neuem Account
     def add_hochschule_zu_student(self, student: Student, cache):
@@ -64,6 +75,7 @@ class Controller:
             )
         student.hochschule = hs
         self.db.session.commit()
+        logger.info("Hochschule %s Student %s zugeordnet", hs.name, student.email)
         # session.flush() ?
 
     def add_studiengang_zu_student(self, student: Student, cache):
@@ -74,6 +86,7 @@ class Controller:
             )
         student.studiengang = sg
         self.db.session.commit()
+        logger.info("Studiengang %s Student %s zugeordnet", sg.name, student.email)
         # session.flush()
 
     def add_studiengang_zu_hochschule(self, cache):
@@ -90,6 +103,7 @@ class Controller:
         if sg not in hs.studiengaenge:
             hs.studiengaenge.append(sg)
             self.db.session.commit()
+            logger.info("Studiengang %s Hochschule %s zugeordnet", sg.name, hs.name)
 
     def load_dashboard_data(self):
         if not self.student:
@@ -138,6 +152,7 @@ class Controller:
         else:
             bisher = (datetime.date.today() - self.student.start_datum).days
             progress = round(max(0, min(bisher / dauer, 1)), 3)
+        logger.debug("get_time_progress ausgeführt")
         return progress
 
     def get_semester_amount(self):
@@ -155,6 +170,7 @@ class Controller:
                     max(0, (dauer_aller_semester / dauer_start_ziel)),
                     3,
                 )
+                logger.debug("get_semester_amount ausgeführt")
                 return amount
 
     def get_number_of_enrollments_with_status(self, status: EnrollmentStatus) -> int:
@@ -165,6 +181,7 @@ class Controller:
             for enrollment in self.student.enrollments
             if enrollment.status == status
         ]
+        logger.debug("get_number_of_enrollments_with_status %s ausgeführt", str(status))
         return len(liste)
 
     def get_number_of_enrollments_with_status_ausstehend(self) -> int:
@@ -179,6 +196,7 @@ class Controller:
                 EnrollmentStatus.NICHT_BESTANDEN
             )
         )
+        logger.debug("get_number_of_enrollments_with_status_ausstehend ausgeführt")
         return ausstehende
 
     def get_erarbeitete_ects(self) -> int:
@@ -189,6 +207,7 @@ class Controller:
             for enrollment in self.student.enrollments
             if enrollment.status == EnrollmentStatus.ABGESCHLOSSEN
         ]
+        logger.debug("get_erarbeitete_ects ausgeführt")
         return sum(liste)
 
     def get_notendurchschnitt(self) -> float | str:
@@ -200,8 +219,10 @@ class Controller:
             if enrollment.status == EnrollmentStatus.ABGESCHLOSSEN
         ]
         if liste != []:
+            logger.debug("get_notendurchschnitt ausgeführt")
             return float(round((sum(liste) / len(liste)), 2))  # type: ignore
         else:
+            logger.debug("get_notendurchschnitt ausgeführt")
             return "--"
 
     def get_list_of_semester(self) -> list:
@@ -220,6 +241,7 @@ class Controller:
                 ),
             }
             semester_list.append(semester_dict)
+        logger.debug("get_list_of_semester ausgeführt")
         return semester_list
 
     def get_list_of_enrollments(self) -> list:
@@ -230,6 +252,7 @@ class Controller:
         for enrollment in self.student.enrollments:
             enrollment_dict = self.get_enrollment_data(enrollment.id)
             enrollment_list.append(enrollment_dict)
+        logger.debug("get_list_of_enrollments ausgeführt")
         return enrollment_list
 
     def get_list_of_kurse(self, modul: Modul) -> list:
@@ -244,6 +267,7 @@ class Controller:
                 "nummer": kurs.nummer,
             }
             kurse_list.append(kurse_dict)
+        logger.debug("get_list_of_kurse ausgeführt")
         return kurse_list
 
     def get_list_of_pruefungsleistungen(self, enrollment: Enrollment) -> list:
@@ -254,9 +278,11 @@ class Controller:
         for pl in enrollment.pruefungsleistungen:
             pruefungsleistungen_dict = self.get_pl_dict(pl)
             pruefungsleistungen_list.append(pruefungsleistungen_dict)
+        logger.debug("get_list_of_pruefungsleistungen ausgeführt")
         return pruefungsleistungen_list
 
     def get_pl_dict(self, pl: Pruefungsleistung):
+        logger.debug("get_pl_dict ausgeführt")
         return {
             "id": pl.id,
             "teilpruefung": pl.teilpruefung,
@@ -274,6 +300,7 @@ class Controller:
             if enrollment.id == enrollment_id:
                 for pl in enrollment.pruefungsleistungen:
                     if pl.id == pl_id:
+                        logger.debug("get_pl_with_id ausgeführt")
                         return self.get_pl_dict(pl)
         return {}
 
@@ -301,6 +328,7 @@ class Controller:
                 }
             else:
                 continue
+            logger.debug("get_enrollment_data ausgeführt")
             return enrollment_dict
         return {}
 
@@ -317,14 +345,18 @@ class Controller:
             for dictionary in hs_dict_kurz.values():
                 for long, short in dictionary.items():
                     if long == name:
+                        logger.debug(
+                            "get_hs_kurzname_if_notwendig ausgeführt: Name lang - Kurz zurück"
+                        )
                         return short
                     else:
                         pass
+
             return name
         else:
+            logger.debug("get_hs_kurzname_if_notwendig ausgeführt: Name kurz")
             return name
 
-    # gibt dict mit Hochschul-Namen zurück, die in csv sind + id als key
     def get_hochschulen_dict(self) -> dict[int, str]:
         hochschulen = self.db.lade_alle_hochschulen()
         hochschulen_dict: dict[int, str] = {}
@@ -332,6 +364,7 @@ class Controller:
         for hochschule in hochschulen:
             if hochschule.name in hs_namen_set:
                 hochschulen_dict[hochschule.id] = hochschule.name
+        logger.debug("get_hochschulen_dict ausgeführt")
         return hochschulen_dict
 
     def get_studiengaenge_von_hs_dict(self, hochschule_id) -> dict[int, str]:
@@ -341,8 +374,10 @@ class Controller:
             studiengaenge_dict = {}
             for studiengang in studiengaenge:
                 studiengaenge_dict[studiengang.id] = studiengang.name
+            logger.debug("get_studiengaenge_von_hs_dict ausgeführt")
             return studiengaenge_dict
         else:
+            logger.debug("get_studiengaenge_von_hs_dict ausgeführt - keine gefunden")
             return {0: ""}
 
     def get_studiengang_id(self, studiengang_name, hochschule_id) -> dict[int, str]:
@@ -352,20 +387,29 @@ class Controller:
                 hochschule_id=hochschule.id, studiengang_name=studiengang_name
             )
             if studiengang:
+                logger.debug(
+                    "get_studiengang_id ausgeführt: %s: %s",
+                    studiengang.id,
+                    studiengang.name,
+                )
                 return {studiengang.id: studiengang.name}
             else:
+                logger.debug("get_studiengang_id ausgeführt: {0: }")
                 return {0: ""}
         else:
+            logger.debug("get_studiengang_id ausgeführt: {0: }")
             return {0: ""}
 
     def erstelle_hochschule(self, hochschul_name) -> dict[int, str]:
         hochschule = self.db.add_hochschule(hochschul_name)
         self.db.session.commit()
+        logger.info("Hochschule erstellt: %s", hochschule.id)
         return {hochschule.id: hochschule.name}
 
     def erstelle_studiengang(self, studiengang_name, gesamt_ects_punkte):
         studiengang = self.db.add_studiengang(studiengang_name, gesamt_ects_punkte)
         self.db.session.commit()
+        logger.info("Studiengang erstellt: %s", studiengang.id)
         return {studiengang.id: studiengang.name}
 
     def erstelle_semester_fuer_student(self, student: Student):
@@ -383,6 +427,7 @@ class Controller:
                 student=student, nummer=nummer, ende=ende, beginn=beginn
             )
         self.db.session.commit()
+        logger.info("Semester wurden erstellt: %s", student.email)
 
     def validate_email_for_new_account(self, value: str):
         try:
@@ -400,14 +445,16 @@ class Controller:
         except EmailNotValidError as e:
             return e
 
-    def get_enrollment_status(self, enrollment_id: int) -> str | None:
-        if self.student:
-            for enrollment in self.student.enrollments:
-                if enrollment_id == enrollment.id:
-                    enrollment.check_status()
-                    return str(enrollment.status)
-        else:
-            return None
+    # deaktiviert, da nicht in Verwendung
+    # def get_enrollment_status(self, enrollment_id: int) -> str | None:
+    #     if self.student:
+    #         for enrollment in self.student.enrollments:
+    #             if enrollment_id == enrollment.id:
+    #                 enrollment.check_status()
+    #                 logger.debug("get_enrollment_status ausgeführt")
+    #                 return str(enrollment.status)
+    #     else:
+    #         return None
 
     def check_if_email_exists(self, email):
         if self.db.lade_student(email=email):
@@ -423,6 +470,11 @@ class Controller:
                 else:
                     continue
             return False
+
+    def get_startdatum(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        return self.student.start_datum
 
     def erstelle_enrollment(self, enrollment_cache):
         if not self.student:
@@ -444,6 +496,7 @@ class Controller:
                 ects_punkte=enrollment_cache["modul_ects"],
                 studiengang_id=self.student.studiengang_id,
             )
+            logger.info("Modul erstellt: %s", modul.id)
         # Kurse erstellen, falls nicht vorhanden
         for kurs_dict in enrollment_cache["kurse_list"]:
             for key, value in kurs_dict.items():
@@ -451,6 +504,7 @@ class Controller:
                 kurs = self.db.lade_kurs(kursnummer=kursnummer)
                 if kurs is None:
                     kurs = self.db.add_kurs(name=value, nummer=kursnummer)
+                    logger.info("Kurs erstellt: %s", kurs.id)
                 if kurs not in modul.kurse:
                     modul.kurse.append(kurs)
         # enrollment erstellen
@@ -460,6 +514,12 @@ class Controller:
             status=EnrollmentStatus.IN_BEARBEITUNG,
             einschreibe_datum=einschreibe_datum,
             anzahl_pruefungsleistungen=enrollment_cache["pl_anzahl"],
+        )
+        logger.info(
+            "Enrollment %s erstellt: Student: %s, Modul: %s",
+            enrollment.id,
+            self.student.email,
+            modul.id,
         )
         # Prüfungsleistungen erstellen:
         for i in range(enrollment.anzahl_pruefungsleistungen):
@@ -473,6 +533,10 @@ class Controller:
                     note=None,
                     datum=None,
                 )
+        logger.info(
+            "Prüfungsleistungen für Enrollment %s erstellt",
+            enrollment.id,
+        )
         # erzeugte Objekte bekommen IDs von DB.
         self.db.session.flush()
 
@@ -509,6 +573,11 @@ class Controller:
                     if pl.id == pl_dict["id"]:
                         pl.datum = pl_datum
                         pl.note = pl_dict["note"]
+                        logger.info(
+                            "Prüfungsleistungen für Enrollment %s geändert: PL-ID=%s",
+                            enrollment.id,
+                            pl.id,
+                        )
                         self.db.session.commit()
                         enrollment.check_status()
 
@@ -517,24 +586,28 @@ class Controller:
             raise RuntimeError("Nicht eingeloggt")
         self.student.email = new_email
         self.db.session.commit()
+        logger.info("change_email: s.id=%s, email=%s", self.student.id, new_email)
 
     def change_pw(self, new_pw: str):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.password = new_pw
         self.db.session.commit()
+        logger.info("change_pw: s.id=%s", self.student.id)
 
     def change_name(self, new_name: str):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.name = new_name
         self.db.session.commit()
+        logger.info("change_name: s.id=%s, name=%s", self.student.id, new_name)
 
     def change_matrikelnummer(self, value: str):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.matrikelnummer = value
         self.db.session.commit()
+        logger.info("changed_matrikelnummer: s.id=%s, m.nr=%s", self.student.id, value)
 
     def change_semester_anzahl(self, value: int):
         if not self.student:
@@ -543,6 +616,9 @@ class Controller:
         self.student.semester.clear()
         self.erstelle_semester_fuer_student(self.student)
         self.db.session.commit()
+        logger.info(
+            "change_semester_anzahl: s.id=%s to %s semester", self.student.id, value
+        )
 
     def change_startdatum(self, value: datetime.date):
         if not self.student:
@@ -551,18 +627,21 @@ class Controller:
         self.student.semester.clear()
         self.erstelle_semester_fuer_student(self.student)
         self.db.session.commit()
+        logger.info("change_startdatum: s.id=%s to %s", self.student.id, value)
 
     def change_gesamt_ects(self, value: int):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.studiengang.gesamt_ects_punkte = value
         self.db.session.commit()
+        logger.info("change_gesamt_ects: s.id=%s to %s", self.student.id, value)
 
     def change_modul_anzahl(self, value: int):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.modul_anzahl = value
         self.db.session.commit()
+        logger.info("change_modul_anzahl: s.id=%s to %s", self.student.id, value)
 
     def change_hochschule(self, id, hs):
         if not self.student:
@@ -575,6 +654,7 @@ class Controller:
         self.add_hochschule_zu_student(student=self.student, cache=cache)
         self.change_studiengang(value=self.student.studiengang.name)
         self.db.session.commit()
+        logger.info("change_hochschule: s.id=%s to hs.id=%s", self.student.id, id)
 
     def change_studiengang(self, value):
         if not self.student:
@@ -602,26 +682,35 @@ class Controller:
 
                 self.add_studiengang_zu_student(student=self.student, cache=neu_cache)
         self.db.session.commit()
+        logger.info("change_studiengang: s.id=%s to sg=%s", self.student.id, value)
 
     def change_zieldatum(self, value: datetime.date):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.ziel_datum = value
         self.db.session.commit()
+        logger.info("change_zieldatum: s.id=%s to %s", self.student.id, value)
 
     def change_zielnote(self, value):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.ziel_note = value
         self.db.session.commit()
+        logger.info("change_zielnote: s.id=%s to %s", self.student.id, value)
 
     def change_exmatrikulationsdatum(self, value):
         if not self.student:
             raise RuntimeError("Nicht eingeloggt")
         self.student.exmatrikulationsdatum = value
         self.db.session.commit()
+        logger.info(
+            "change_exmatrikulationsdatum: s.id=%s to %s", self.student.id, value
+        )
 
     def logout(self) -> None:
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        logger.info("Logout: %s - %s", self.student.id, self.student.email)
         try:
             if self.db.session.is_active:
                 self.db.session.expire_all()
@@ -635,6 +724,9 @@ class Controller:
         self.db.recreate_session()
 
     def delete_student(self):
+        if not self.student:
+            raise RuntimeError("Nicht eingeloggt")
+        logger.info("delete_student: %s - %s", self.student.id, self.student.email)
         self.db.session.delete(self.student)
         self.db.session.commit()
         self.logout()

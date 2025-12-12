@@ -10,6 +10,7 @@ import textwrap
 import webbrowser
 
 from src.main import Controller
+from utils.logging_config import setup_logging
 
 # GLOBAL
 BACKGROUND = "#FFFFFF"
@@ -1910,7 +1911,7 @@ class AddEnrollmentFrame(ctk.CTkScrollableFrame):
 
         top.geometry(f"{popup_w}x{popup_h}+{x}+{y}")
 
-        mindate_start = datetime.date(year=2010, month=1, day=1)
+        mindate_start = self.controller.get_startdatum()
         maxdate_start = datetime.date.today()
 
         cal_start = Calendar(
@@ -2713,7 +2714,7 @@ class SettingsFrame(ctk.CTkScrollableFrame):
             border_spacing=2,
             border_width=2,
             hover_color="gray95",
-            command=self.verify_email,
+            command=self.save_email,
         )
         self.email_button.grid(row=0, column=4, padx=10, pady=10)
 
@@ -3872,6 +3873,7 @@ class UeberFrame(ctk.CTkFrame):
 
 class App(ctk.CTk):
     def __init__(self):
+        setup_logging(debug=False)
         super().__init__(fg_color=BACKGROUND)
 
         ctk.FontManager.load_font(str(FONT_PATH_NOTO))
