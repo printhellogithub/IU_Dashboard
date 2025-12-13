@@ -3873,7 +3873,7 @@ class UeberFrame(ctk.CTkFrame):
 
 class App(ctk.CTk):
     def __init__(self):
-        setup_logging(debug=False)
+        setup_logging(debug=False, log_to_console=True)
         super().__init__(fg_color=BACKGROUND)
 
         ctk.FontManager.load_font(str(FONT_PATH_NOTO))

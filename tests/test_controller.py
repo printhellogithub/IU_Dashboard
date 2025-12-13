@@ -236,6 +236,23 @@ def test_logout_and_delete_student(controller, db):
     controller.logout()
     assert controller.student is None
     # neu setzen und löschen
-    controller.student = s
+    # controller.student = s
+    # controller.delete_student()
+    # assert db.lade_student("z@gmail.com") is None
+
+
+def test_delete_student(controller, db):
+    t = db.add_student(
+        "X",
+        "2",
+        "x@gmail.com",
+        "pw",
+        8,
+        36,
+        datetime.date(2024, 1, 1),
+        datetime.date(2024, 12, 31),
+        2.0,
+    )
+    controller.student = t
     controller.delete_student()
-    assert db.lade_student("z@gmail.com") is None
+    assert db.lade_student("x@gmail.com") is None

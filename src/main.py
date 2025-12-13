@@ -70,6 +70,7 @@ class Controller:
     def add_hochschule_zu_student(self, student: Student, cache):
         hs = self.db.lade_hochschule_mit_id(int(cache["hochschulid"]))
         if hs is None:
+            logger.warning("Hochschule nicht gefunden: id=%s", cache["hochschulid"])
             raise ValueError(
                 f"Hochschule ({cache['hochschulid']}) wurde nicht gefunden!"
             )
@@ -81,6 +82,7 @@ class Controller:
     def add_studiengang_zu_student(self, student: Student, cache):
         sg = self.db.lade_studiengang_mit_id(int(cache["studiengang_id"]))
         if sg is None:
+            logger.warning("Studiengang nicht gefunden: id=%s", cache["studiengang_id"])
             raise ValueError(
                 f"Studiengang ({cache['studiengang_id']}) wurde nicht gefunden!"
             )
@@ -93,10 +95,12 @@ class Controller:
         hs = self.db.lade_hochschule_mit_id(int(cache["hochschulid"]))
         sg = self.db.lade_studiengang_mit_id(int(cache["studiengang_id"]))
         if not hs:
+            logger.warning("Hochschule nicht gefunden: id=%s", cache["hochschulid"])
             raise ValueError(
                 f"Hochschule ({cache['hochschulid']}) wurde nicht gefunden! command: controller.add_studiengang_zu_hochschule"
             )
         if not sg:
+            logger.warning("Studiengang nicht gefunden: id=%s", cache["studiengang_id"])
             raise ValueError(
                 f"Studiengang ({cache['studiengang_id']}) wurde nicht gefunden! command: controller.add_studiengang_zu_hochschule"
             )
@@ -107,6 +111,7 @@ class Controller:
 
     def load_dashboard_data(self):
         if not self.student:
+            logger.warning("Nicht eingeloggt: load_dashboard_data aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         return {
             "email": self.student.email,
@@ -140,6 +145,7 @@ class Controller:
 
     def get_time_progress(self):
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_time_progress aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
 
         dauer = (self.student.ziel_datum - self.student.start_datum).days
@@ -157,6 +163,7 @@ class Controller:
 
     def get_semester_amount(self):
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_semester_amount aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
 
         for semester in self.student.semester:
@@ -175,6 +182,9 @@ class Controller:
 
     def get_number_of_enrollments_with_status(self, status: EnrollmentStatus) -> int:
         if not self.student:
+            logger.warning(
+                "Nicht eingeloggt: get_number_of_enrollments_with_status aufgerufen."
+            )
             raise RuntimeError("Nicht eingeloggt")
         liste = [
             enrollment
@@ -186,6 +196,9 @@ class Controller:
 
     def get_number_of_enrollments_with_status_ausstehend(self) -> int:
         if not self.student:
+            logger.warning(
+                "Nicht eingeloggt: get_number_of_enrollments_with_status_ausstehend aufgerufen."
+            )
             raise RuntimeError("Nicht eingeloggt")
         ausstehende = self.student.modul_anzahl - (
             self.get_number_of_enrollments_with_status(EnrollmentStatus.ABGESCHLOSSEN)
@@ -201,6 +214,7 @@ class Controller:
 
     def get_erarbeitete_ects(self) -> int:
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_erarbeitete_ects aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         liste = [
             enrollment.modul.ects_punkte
@@ -212,6 +226,7 @@ class Controller:
 
     def get_notendurchschnitt(self) -> float | str:
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_notendurchschnitt aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         liste = [
             enrollment.berechne_enrollment_note()
@@ -227,6 +242,7 @@ class Controller:
 
     def get_list_of_semester(self) -> list:
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_list_of_semester aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         semester_list = []
         semester_dict = {}
@@ -246,6 +262,7 @@ class Controller:
 
     def get_list_of_enrollments(self) -> list:
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_list_of_enrollments aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         enrollment_list = []
         enrollment_dict = {}
@@ -257,6 +274,7 @@ class Controller:
 
     def get_list_of_kurse(self, modul: Modul) -> list:
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_list_of_kurse aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         kurse_list = []
         kurse_dict = {}
@@ -272,6 +290,9 @@ class Controller:
 
     def get_list_of_pruefungsleistungen(self, enrollment: Enrollment) -> list:
         if not self.student:
+            logger.warning(
+                "Nicht eingeloggt: get_list_of_pruefungsleistungen aufgerufen."
+            )
             raise RuntimeError("Nicht eingeloggt")
         pruefungsleistungen_list = []
         pruefungsleistungen_dict = {}
@@ -295,6 +316,7 @@ class Controller:
 
     def get_pl_with_id(self, enrollment_id, pl_id):
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_pl_with_id aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         for enrollment in self.student.enrollments:
             if enrollment.id == enrollment_id:
@@ -306,6 +328,7 @@ class Controller:
 
     def get_enrollment_data(self, id):
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_enrollment_data aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         for enrollment in self.student.enrollments:
             if enrollment.id == id:
@@ -470,14 +493,19 @@ class Controller:
                 else:
                     continue
             return False
+        else:
+            logger.warning("Nicht eingeloggt: check_if_already_enrolled aufgerufen.")
+            raise RuntimeError("Nicht eingeloggt")
 
     def get_startdatum(self):
         if not self.student:
+            logger.warning("Nicht eingeloggt: get_startdatum aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         return self.student.start_datum
 
     def erstelle_enrollment(self, enrollment_cache):
         if not self.student:
+            logger.warning("Nicht eingeloggt: erstelle_enrollment aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
 
         # Einschreibedatum setzen
@@ -485,6 +513,10 @@ class Controller:
         try:
             einschreibe_datum = datetime.date.fromisoformat(einschreibe_datum_str)
         except ValueError:
+            logger.warning(
+                "Ungültiges Startdatum in erstelle_enrollment: %s",
+                einschreibe_datum_str,
+            )
             raise ValueError(f"Ungültiges Startdatum: {einschreibe_datum_str}")
 
         # Modul erstellen, falls nicht vorhanden
@@ -558,6 +590,7 @@ class Controller:
 
     def change_pl(self, enrollment_id, pl_dict):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_pl aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
 
         # Einschreibedatum setzen
@@ -565,6 +598,7 @@ class Controller:
         try:
             pl_datum = datetime.date.fromisoformat(pl_datum_str)
         except ValueError:
+            logger.warning("Ungültiges Startdatum in change_pl: %s", pl_datum_str)
             raise ValueError(f"Ungültiges Startdatum: {pl_datum_str}")
 
         for enrollment in self.student.enrollments:
@@ -583,6 +617,7 @@ class Controller:
 
     def change_email(self, new_email: str):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_email aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.email = new_email
         self.db.session.commit()
@@ -590,6 +625,7 @@ class Controller:
 
     def change_pw(self, new_pw: str):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_pw aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.password = new_pw
         self.db.session.commit()
@@ -597,6 +633,7 @@ class Controller:
 
     def change_name(self, new_name: str):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_name aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.name = new_name
         self.db.session.commit()
@@ -604,6 +641,7 @@ class Controller:
 
     def change_matrikelnummer(self, value: str):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_matrikelnummer aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.matrikelnummer = value
         self.db.session.commit()
@@ -611,6 +649,7 @@ class Controller:
 
     def change_semester_anzahl(self, value: int):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_semester_anzahl aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.semester_anzahl = value
         self.student.semester.clear()
@@ -622,6 +661,7 @@ class Controller:
 
     def change_startdatum(self, value: datetime.date):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_startdatum aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.start_datum = value
         self.student.semester.clear()
@@ -631,6 +671,7 @@ class Controller:
 
     def change_gesamt_ects(self, value: int):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_gesamt_ects aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.studiengang.gesamt_ects_punkte = value
         self.db.session.commit()
@@ -638,6 +679,7 @@ class Controller:
 
     def change_modul_anzahl(self, value: int):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_modul_anzahl aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.modul_anzahl = value
         self.db.session.commit()
@@ -645,6 +687,7 @@ class Controller:
 
     def change_hochschule(self, id, hs):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_hochschule aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         cache = {
             "hochschulid": id,
@@ -658,6 +701,7 @@ class Controller:
 
     def change_studiengang(self, value):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_studiengang aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         studiengang = [
             studiengang
@@ -686,6 +730,7 @@ class Controller:
 
     def change_zieldatum(self, value: datetime.date):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_zieldatum aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.ziel_datum = value
         self.db.session.commit()
@@ -693,6 +738,7 @@ class Controller:
 
     def change_zielnote(self, value):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_zielnote aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.ziel_note = value
         self.db.session.commit()
@@ -700,6 +746,7 @@ class Controller:
 
     def change_exmatrikulationsdatum(self, value):
         if not self.student:
+            logger.warning("Nicht eingeloggt: change_exmatrikulationsdatum aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         self.student.exmatrikulationsdatum = value
         self.db.session.commit()
@@ -709,24 +756,36 @@ class Controller:
 
     def logout(self) -> None:
         if not self.student:
+            logger.warning("Nicht eingeloggt: logout aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         logger.info("Logout: %s - %s", self.student.id, self.student.email)
         try:
             if self.db.session.is_active:
                 self.db.session.expire_all()
         except Exception:
-            pass
+            logger.exception("expire_all fehlgeschlagen.")
         try:
             self.db.session.close()
         except Exception:
-            pass
+            logger.exception("Session close fehlgeschlagen.")
         self.student = None
-        self.db.recreate_session()
+        try:
+            self.db.recreate_session()
+        except Exception:
+            logger.exception("recreate_session fehlgeschlagen.")
+            raise RuntimeError(
+                "Es konnte keine neue Datenbank-Session eröffnet werden."
+            )
 
     def delete_student(self):
         if not self.student:
+            logger.warning("Nicht eingeloggt: delete_student aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
         logger.info("delete_student: %s - %s", self.student.id, self.student.email)
-        self.db.session.delete(self.student)
-        self.db.session.commit()
+        try:
+            self.db.session.delete(self.student)
+            self.db.session.commit()
+        except Exception:
+            logger.exception("Student löschen fehlgeschlagen.")
+            raise RuntimeError("Student löschen fehlgeschlagen.")
         self.logout()

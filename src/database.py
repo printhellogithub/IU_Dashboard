@@ -21,21 +21,31 @@ logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     def __init__(self):
-        # Verbindung zur Datenbank
-        self.engine = create_engine("sqlite+pysqlite:///data/data.db", echo=False)
-        # Alle Tabellen erzeugen
-        Base.metadata.create_all(self.engine)
-        self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
-        self.session = self.SessionLocal()
-        logger.info("Datenbank initialisiert: %s", self.engine.url)
+        try:
+            # Verbindung zur Datenbank
+            self.engine = create_engine("sqlite+pysqlite:///data/data.db", echo=False)
+            logger.info("Datenbank-Engine erstellt: %s", self.engine.url)
+            # Alle Tabellen erzeugen
+            Base.metadata.create_all(self.engine)
+            logger.info("Tabellen erstellt (create_all).")
+            self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
+            self.session = self.SessionLocal()
+            logger.debug("Erste DB-Session geöffnet.")
+        except Exception:
+            logger.critical("Datenbank-Initialisierung fehlgeschlagen.", exc_info=True)
+            raise RuntimeError("Datenbank-Initialisierung fehlgeschlagen.")
 
     def recreate_session(self):
         try:
             self.session.close()
         except Exception:
-            pass
-        self.session = self.SessionLocal()
-        logger.debug("Neue DB-Session erstellt")
+            logger.exception("Session konnte nicht geschlossen werden.")
+        try:
+            self.session = self.SessionLocal()
+            logger.debug("Neue DB-Session erstellt.")
+        except Exception:
+            logger.exception("Neue DB-Session konnte nicht erstellt werden.")
+            raise RuntimeError("Neue DB-Session konnte nicht erstellt werden.")
 
     def add_student(
         self,
