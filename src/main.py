@@ -5,7 +5,6 @@ from src.models import Enrollment, EnrollmentStatus, Student, Modul, Pruefungsle
 from data.hochschulen import hs_dict
 from data.hs_dict_kurz import hs_dict_kurz
 
-# import csv
 import datetime
 from dateutil.relativedelta import relativedelta
 import logging
@@ -530,15 +529,15 @@ class Controller:
             )
             logger.info("Modul erstellt: %s", modul.id)
         # Kurse erstellen, falls nicht vorhanden
-        for kurs_dict in enrollment_cache["kurse_list"]:
-            for key, value in kurs_dict.items():
-                kursnummer = key
-                kurs = self.db.lade_kurs(kursnummer=kursnummer)
-                if kurs is None:
-                    kurs = self.db.add_kurs(name=value, nummer=kursnummer)
-                    logger.info("Kurs erstellt: %s", kurs.id)
-                if kurs not in modul.kurse:
-                    modul.kurse.append(kurs)
+        for key, value in enrollment_cache["kurse_list"].items():
+            kursnummer = key
+            kurs = self.db.lade_kurs(kursnummer=kursnummer)
+            if kurs is None:
+                kurs = self.db.add_kurs(name=value, nummer=kursnummer)
+                logger.info("Kurs erstellt: %s", kurs.id)
+            if kurs not in modul.kurse:
+                modul.kurse.append(kurs)
+
         # enrollment erstellen
         enrollment = self.db.add_enrollment(
             student=self.student,
@@ -623,13 +622,13 @@ class Controller:
         self.db.session.commit()
         logger.info("change_email: s.id=%s, email=%s", self.student.id, new_email)
 
-    def change_pw(self, new_pw: str):
+    def change_password(self, new_password: str):
         if not self.student:
-            logger.warning("Nicht eingeloggt: change_pw aufgerufen.")
+            logger.warning("Nicht eingeloggt: change_password aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
-        self.student.password = new_pw
+        self.student.password = new_password
         self.db.session.commit()
-        logger.info("change_pw: s.id=%s", self.student.id)
+        logger.info("change_password: s.id=%s", self.student.id)
 
     def change_name(self, new_name: str):
         if not self.student:

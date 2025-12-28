@@ -15,6 +15,11 @@ from sqlalchemy import create_engine, select
 
 # import csv
 import logging
+from pathlib import Path
+
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "data.db"
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+DB_URL = f"sqlite+pysqlite:///{DB_PATH}"
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +28,7 @@ class DatabaseManager:
     def __init__(self):
         try:
             # Verbindung zur Datenbank
-            self.engine = create_engine("sqlite+pysqlite:///data/data.db", echo=False)
+            self.engine = create_engine(DB_URL, echo=False)
             logger.info("Datenbank-Engine erstellt: %s", self.engine.url)
             # Alle Tabellen erzeugen
             Base.metadata.create_all(self.engine)
