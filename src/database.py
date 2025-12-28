@@ -13,7 +13,6 @@ from src.models import (
 )
 from sqlalchemy import create_engine, select
 
-# import csv
 import logging
 from pathlib import Path
 
@@ -77,7 +76,6 @@ class DatabaseManager:
         )
         self.session.add(student)
         self.session.commit()
-        # session.refresh(student)
         return student
 
     def add_enrollment(
@@ -97,10 +95,8 @@ class DatabaseManager:
         )
         self.session.add(enrollment)
         self.session.commit()
-        # session.refresh(enrollment)
         return enrollment
 
-    # siehe models.py -> class Enrollment -> add_pruefungsleistung
     def add_pruefungsleistung(
         self, teilpruefung, teilpruefung_gewicht, versuch, note, datum
     ):
@@ -119,7 +115,6 @@ class DatabaseManager:
         kurs = Kurs(name=name, nummer=nummer)
         self.session.add(kurs)
         self.session.commit()
-        # session.refresh(kurs)
         return kurs
 
     def add_modul(
@@ -151,20 +146,6 @@ class DatabaseManager:
         self.session.commit()
         return studiengang
 
-    # deaktiviert, da nicht in Verwendung
-    # def add_hochschulen_von_csv(self):
-    #     with self.session as session:
-    #         with open("data/LISTE_Hochschulen_Hochschulkompass.csv") as file:
-    #             reader = csv.DictReader(file)
-    #             for row in reader:
-    #                 stmt = select(Hochschule).where(
-    #                     Hochschule.name == row["Hochschulname"]
-    #                 )
-    #                 if not session.scalars(stmt).first():
-    #                     hochschule = Hochschule(name=row["Hochschulname"])
-    #                     session.add(hochschule)
-    #                 session.commit()
-
     def add_hochschule(self, name):
         hochschule = Hochschule(name=name)
         self.session.add(hochschule)
@@ -188,22 +169,6 @@ class DatabaseManager:
         )
         return self.session.scalar(stmt)
 
-    # deaktiviert, da nicht in Verwendung
-    # def lade_enrollment(self, student: Student, modul: Modul) -> Enrollment | None:
-    #     stmt = (
-    #         select(Enrollment)
-    #         .where(Enrollment.student_id == student.id)
-    #         .where(Enrollment.modul_id == modul.id)
-    #     )
-    #     return self.session.scalars(stmt).first()
-
-    # deaktiviert, da nicht in Verwendung
-    # def lade_pruefungsleistung(self, enrollment: Enrollment):
-    #     stmt = select(Pruefungsleistung).where(
-    #         Pruefungsleistung.enrollment_id == enrollment.id
-    #     )
-    #     return self.session.scalars(stmt).first()
-
     def lade_kurs(self, kursnummer) -> Kurs | None:
         stmt = select(Kurs).where(Kurs.nummer == kursnummer)
         return self.session.scalars(stmt).first()
@@ -211,22 +176,6 @@ class DatabaseManager:
     def lade_modul(self, modulcode) -> Modul | None:
         stmt = select(Modul).where(Modul.modulcode == modulcode)
         return self.session.scalars(stmt).first()
-
-    # # deaktiviert, da nicht in Verwendung
-    # def lade_module_von_student(self, student: Student):
-    #     stmt = select(Modul).where(Modul.studiengang_id == student.studiengang_id)
-    #     result = self.session.scalars(stmt).fetchall()
-    #     return result
-
-    # # deaktiviert, da nicht in Verwendung
-    # def lade_semester(self, student: Student):
-    #     stmt = select(Semester).where(Semester.student_id == student.id)
-    #     return self.session.scalars(stmt).first()
-
-    # # deaktiviert, da nicht in Verwendung
-    # def lade_studiengang(self, student: Student):
-    #     stmt = select(Studiengang).where(Studiengang.id == student.studiengang.id)
-    #     return self.session.scalars(stmt).first()
 
     def lade_studiengang_mit_id(self, id):
         stmt = select(Studiengang).where(Studiengang.id == id)
@@ -253,44 +202,7 @@ class DatabaseManager:
         stmt = select(Hochschule).where(Hochschule.id == id)
         return self.session.scalars(stmt).first()
 
-    # # deaktiviert, da nicht in Verwendung
-    # def lade_hochschule(self, student: Student):
-    #     stmt = select(Hochschule).where(Hochschule.id == student.hochschule_id)
-    #     return self.session.scalars(stmt).first()
-
     def lade_alle_hochschulen(self):
         stmt = select(Hochschule)
         result = self.session.scalars(stmt)
         return result.all()
-
-    # # deaktiviert, da nicht in Verwendung
-    # def lade_enrollments_von_student(self, student_id: int) -> list[Enrollment]:
-    #     stmt = (
-    #         select(Enrollment)
-    #         .options(
-    #             selectinload(Enrollment.modul),
-    #             selectinload(Enrollment.student),
-    #         )
-    #         .where(Enrollment.student_id == student_id)
-    #     )
-    #     return list(self.session.scalars(stmt))
-
-    # # deaktiviert, da nicht in Verwendung
-    # def lade_enrollment_mit_id(self, id: int):
-    #     stmt = select(Enrollment).where(Enrollment.id == id)
-    #     return self.session.scalars(stmt).first()
-
-    # deaktiviert, da nicht in Verwendung
-    # def lade_kurse_von_student(self, student: Student) -> list[Kurs]:
-    #     stmt = select(Kurs).join(Enrollment).where(Enrollment.student_id == student.id)
-    #     return list(self.session.scalars(stmt))
-
-    # deaktiviert, da nicht in Verwendung
-    # def lade_module_von_student_as_list(self, student: Student):
-    #     stmt = select(Modul).where(Modul.studiengang_id == student.studiengang_id)
-    #     return list(self.session.scalars(stmt))
-
-    # deaktiviert, da nicht in Verwendung
-    # def lade_semester_von_student(self, student: Student):
-    #     stmt = select(Semester).where(Semester.student_id == student.id)
-    #     return list(self.session.scalars(stmt))

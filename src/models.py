@@ -12,7 +12,6 @@ from datetime import date
 
 TODAY = date.today()
 
-# PasswordHasher
 ph = PasswordHasher()
 
 
@@ -35,15 +34,6 @@ class SemesterStatus(Enum):
 
 
 # Entity-Klassen
-
-# Es wäre klug gewesen, eine User-Klasse zu machen, von der Student erbt,
-# dadurch wäre es möglich weitere User wie Hochschulmitarbeiter, Admins oder Ähnliche hinzuzufügen,
-# die auch von User (z.b. email/password/name/Hochschule) erben. Somit könnte man den
-# Hochschulmitarbeitern z.b. Statistiken zu kursen oder deren Prüfungen geben, z.b. Durchfallquote,
-# Anzahl d. Studierenden, durchschnittliche Anzahl der Prüfungsversuche, dursch. Bearbeitungszeit...
-
-
-# Student
 class Student(Base):
     __tablename__ = "student"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -96,7 +86,7 @@ class Student(Base):
         self.name = name
         self.matrikelnummer = matrikelnummer
         self.email = email
-        self.password = password  # läuft über Setter → Hashing
+        self.password = password
 
         self.semester_anzahl = semester_anzahl
         self.modul_anzahl = modul_anzahl
@@ -195,31 +185,6 @@ class Student(Base):
     def ziel_note(self, value):
         self._ziel_note = value
 
-    # Methoden von Student
-    def erstelle_enrollment(self):
-        # verlegt nach Controller
-        pass
-
-    # In Verwendung ?
-    # def berechne_gesamt_ects(self):
-    #     gesamt_ects_punkte = 0
-    #     for enrollment in self.enrollments:
-    #         if enrollment.check_status():
-    #             gesamt_ects_punkte += enrollment.modul.ects_punkte
-    #     return gesamt_ects_punkte
-
-    # In Verwendung ?
-    # def berechne_durchschnittsnote(self):
-    #     noten = []
-    #     for enrollment in self.enrollments:
-    #         for pruefungsleistung in enrollment.pruefungsleistungen:
-    #             if pruefungsleistung.ist_bestanden():
-    #                 noten.append(pruefungsleistung.note)
-    #             else:
-    #                 pass
-    #     durchschnittsnote = sum(noten) / len(noten)
-    #     return durchschnittsnote
-
     @hybrid_property
     def exmatrikulationsdatum(self):  # type: ignore[reportRedeclaration]
         return self._exmatrikulationsdatum
@@ -229,7 +194,6 @@ class Student(Base):
         self._exmatrikulationsdatum = value
 
 
-# Hochschule
 class Hochschule(Base):
     __tablename__ = "hochschule"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -250,12 +214,7 @@ class Hochschule(Base):
     def name(self, value: str):
         self._name = value
 
-    def erstelle_studiengang(self):
-        # -> controller?
-        pass
 
-
-# Studiengang
 class Studiengang(Base):
     __tablename__ = "studiengang"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -285,16 +244,7 @@ class Studiengang(Base):
     def gesamt_ects_punkte(self, value: int):
         self._gesamt_ects_punkte = value
 
-    # def erstelle_modul(self):
-    #     # verlegen nach controller?
-    #     pass
 
-    # def fuege_kurs_zu_modul_hinzu(self):
-    # müsste bei enrollment-erstellung drin sein.
-    #     pass
-
-
-# Modul
 class Modul(Base):
     __tablename__ = "modul"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -333,7 +283,6 @@ class Modul(Base):
         self._ects_punkte = value
 
 
-# Kurs
 class Kurs(Base):
     __tablename__ = "kurs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -360,7 +309,6 @@ class Kurs(Base):
         self._nummer = value
 
 
-# Enrollment
 class Enrollment(Base):
     __tablename__ = "enrollment"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, unique=True)
@@ -376,7 +324,6 @@ class Enrollment(Base):
     modul_id = mapped_column(ForeignKey("modul.id"))
     modul: Mapped["Modul"] = relationship(back_populates="enrollments")
 
-    # Möglichkeit mehrerer Teilprüfungen abdecken!
     _anzahl_pruefungsleistungen: Mapped[int] = mapped_column(Integer)
     pruefungsleistungen: Mapped[List[Pruefungsleistung]] = relationship(
         back_populates="enrollment", cascade="all, delete-orphan"
@@ -488,7 +435,7 @@ class Enrollment(Base):
 class Pruefungsleistung(Base):
     __tablename__ = "pruefungsleistung"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
-    # teilpruefung nr. von insgesamt enrollment.anzahl_pruefungsleistunen
+    # Teilpruefung nr. von insgesamt enrollment.anzahl_pruefungsleistungen
     _teilpruefung: Mapped[int] = mapped_column(Integer)
     # bei mehreren Teilprüfungen -> Gewicht pro note
     _teilpruefung_gewicht: Mapped[float] = mapped_column(Float)

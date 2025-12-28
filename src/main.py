@@ -467,17 +467,6 @@ class Controller:
         except EmailNotValidError as e:
             return e
 
-    # deaktiviert, da nicht in Verwendung
-    # def get_enrollment_status(self, enrollment_id: int) -> str | None:
-    #     if self.student:
-    #         for enrollment in self.student.enrollments:
-    #             if enrollment_id == enrollment.id:
-    #                 enrollment.check_status()
-    #                 logger.debug("get_enrollment_status ausgeführt")
-    #                 return str(enrollment.status)
-    #     else:
-    #         return None
-
     def check_if_email_exists(self, email):
         if self.db.lade_student(email=email):
             return True
