@@ -1,3 +1,12 @@
+"""Enthält ein Dictionary mit IDs als Schlüssel und Dictionaries als Werte, in denen der Hochschulname der Schlüssel und der Kurzname der Wert ist.
+
+Im Dashboard wird der Kurzname ausgelesen, wenn der Hochschulname einen Schwellwert an Zeichen überschreibt.
+
+Quelle:
+Stiftung zur Förderung der Hochschulrektorenkonferenz. (n.d.). Alle Hochschulen als TXT-Datei.
+Hochschulkompass.de. https://hs-kompass.de/kompass/xml/download/hs_liste.txt
+"""
+
 hs_dict_kurz = {
     0: {"": ""},
     1: {"AKAD Hochschule Stuttgart - staatlich anerkannt": "Stuttgart AKAD"},

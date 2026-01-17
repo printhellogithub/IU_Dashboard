@@ -1680,24 +1680,29 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
 
         for semester in self.data["semester"]:
             if semester["status"] == "SemesterStatus.ZURUECKLIEGEND":
+                # zurückliegende Semester immer grün
                 color = GRUEN
             elif (
+                # aktuelles Semester bei laufendem Studium -> gelb
                 semester["status"] == "SemesterStatus.AKTUELL"
                 and self.data["exmatrikulationsdatum"] is None
             ):
                 color = GELB
             elif (
+                # abgebrochenes Studium -> letztes begonnenes Semester -> rot
                 semester["status"] == "SemesterStatus.AKTUELL"
                 and self.data["exmatrikulationsdatum"] is not None
                 and self.data["erarbeitete_ects"] != self.data["gesamt_ects"]
             ):
                 color = ROT
             elif (
+                # alle ECTS-Punkte erreicht -> aktuelles/letztes begonnenes Semester (erfolgreich exmatrikuliert) -> grün
                 semester["status"] == "SemesterStatus.AKTUELL"
                 and self.data["erarbeitete_ects"] == self.data["gesamt_ects"]
             ):
                 color = GRUEN
             elif semester["status"] == "SemesterStatus.ZUKUENFTIG":
+                # zukünftige Semester immer grau
                 color = GRAU
             else:
                 raise ValueError(
@@ -3670,7 +3675,7 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
                 self.hochschule_not_valid.configure(text="Entspricht bisherigen Wert")
                 return
             hs_id, hs = self.check_or_create_hochschule()
-            self.controller.change_hochschule(id=hs_id, hs=hs)
+            self.controller.change_hochschule(hochschul_id=hs_id, hochschul_name=hs)
             self.after(0, self.go_to_dashboard)
         else:
             self.hochschule_not_valid.configure(text="Nicht ausgefüllt")
@@ -4306,10 +4311,32 @@ class UeberFrame(ctk.CTkFrame):
             text="Diese Software nutzt folgende Open-Source-Bibliotheken: "
             "SQLAlchemy (MIT), CustomTkinter (MIT), tkcalendar (MIT), "
             "argon2-cffi (MIT), python-dateutil (Apache 2.0), "
-            "email-validator (CC0). Vollständige Lizenzen siehe THIRD_PARTY_LICENSES.txt",
+            "email-validator (CC0). Vollständige Lizenzen siehe THIRD_PARTY_LICENSES.txt"
+            "\nDie Liste deutscher Hochschulen wird von Hochschulkompass.de als txt-Datei zur Verfügung gestellt.",
             font=self.fonts.TEXT,
         )
         cc_label.pack(pady=20)
+
+        hochschulkompass_url = (
+            "https://www.hochschulkompass.de/hochschulen/downloads.html"
+        )
+
+        hochschulkompass_url_button = ctk.CTkButton(
+            self,
+            text="Hochschulkompass.de",
+            font=self.fonts.TEXT,
+            text_color="black",
+            fg_color="transparent",
+            border_color="black",
+            border_spacing=2,
+            border_width=2,
+            hover_color="gray95",
+            command=lambda: webbrowser.open_new_tab(hochschulkompass_url),
+        )
+        hochschulkompass_url_button.pack(pady=(10, 20))
+        ToolTip(
+            hochschulkompass_url_button, text="Öffnet Hochschulkompass.de im Browser"
+        )
 
         url = "https://github.com/printhellogithub/IU_Dashboard"
         gh_button = ctk.CTkButton(

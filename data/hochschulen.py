@@ -1,3 +1,10 @@
+"""Enthält ein Dictionary mit allen deutschen Hochschulen und Universitäten in alphabetischer Reihenfolge als Werte und einer zugehörigen ID als Schlüssel.
+
+Quelle:
+Stiftung zur Förderung der Hochschulrektorenkonferenz. (n.d.). Alle Hochschulen als TXT-Datei.
+Hochschulkompass.de. https://hs-kompass.de/kompass/xml/download/hs_liste.txt
+"""
+
 hs_dict = {
     0: "",
     1: "AKAD Hochschule Stuttgart - staatlich anerkannt",

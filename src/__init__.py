@@ -1,1 +1,2 @@
-# wird gebraucht, dass src als package gefunden wird
+# Existiert, damit /src als Package gefunden wird.
+

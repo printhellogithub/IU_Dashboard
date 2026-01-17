@@ -1,1 +1,1 @@
-# wird gebraucht, dass data als package gefunden wird
+# Existiert, damit /data als Package gefunden wird.
