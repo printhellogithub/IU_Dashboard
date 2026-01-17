@@ -13,15 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 class Controller:
-    """Kapselt die Geschäftslogik und kommuniziert zwischen Model und UI.
+    """Die Controller-Klasse kapselt die Geschäftslogik und kommuniziert zwischen Model und UI nach dem MVC-Pattern.
 
-    Wird von der UI aufgerufen und kümmert sich um Umsetzun, Persistenz im Model und Rückgaben.
+    Wird von der UI aufgerufen und kümmert sich um Umsetzung, Persistenz und Rückgaben.
+    Neben Use-Case-Logik enthält der Controller auch Presenter-Logik: Mapping von Entities zu UI-Dictionaries.
 
     Verantwortlichkeiten:
-        - Authentifizierung bei Login.
-        - Erstellen von Accounts, anderen Objekten und deren Beziehungen.
-        - Läd aktuelle Daten für UI.
-        -
+        - Authentifizierung und Verwaltung von Login-Sessions.
+        - Erstellen und Verwaltung von Student-Accounts und deren Beziehungen.
+        - Erstellen und Verwalten aller anderer Objekte und deren Beziehungen.
+        - Bereitstellung von Daten-Dicts für die UI.
     """
 
     def __init__(self, db: DatabaseManager | None = None, seed: bool = True):
@@ -29,10 +30,10 @@ class Controller:
 
         Args:
             db: DatabaseManager-Instanz, default: None.
-            seed (bool): default: True. Sorgt für automatische Bereitstellung aller deutschen Hochschulen, die in hs_dict vorhanden sind.
+            seed (bool): default: True. Wenn True, werden Hochschulen aus ``hs_dict`` erstellt, falls sie fehlen.
 
         Attribute:
-            db: DatabaseManager-Instanz, für Datenbankzugriffe.
+            db: DatabaseManager-Instanz, für Datenbankzugriffe (langlebige Session).
             student: Student-Instanz, User-Objekt wird bei Login oder Registrierung zugewiesen.
         """
         self.db = db or DatabaseManager()
@@ -44,20 +45,20 @@ class Controller:
         logger.debug("Controller initialisiert")
 
     # --- Account & Login ---
-    def login(self, email: str, password: str):
+    def login(self, email: str, password: str) -> bool:
         """Authentifiziert einen Nutzer und setzt ``self.student`` bei Erfolg.
+
+        Ablauf:
+            - Email-Adresse validieren/normalisieren.
+            - Student inkl. Beziehungen aus DB laden.
+            - Passwort gegen Argon2-Hash prüfen.
 
         Args:
             email (str): Email-Adresse.
             password (str): Passwort im Klartext.
 
-        Ablauf:
-            - E-Mail validieren/normalisieren.
-            - Student inkl. Beziehungen aus DB laden.
-            - Passwort gegen Argon2-Hash prüfen.
-
         Returns:
-            True bei erfolgreichem Login, sonst False.
+            bool: True bei erfolgreichem Login, sonst False.
         """
         verified_email = self.validate_email_for_login(email)
         if isinstance(verified_email, EmailNotValidError):
@@ -73,8 +74,12 @@ class Controller:
             logger.info("Login fehlgeschlagen: %s", verified_email)
             return False
 
-    def erstelle_account(self, cache: dict):
+    def erstelle_account(self, cache: dict) -> None:
         """Legt einen neuen Student inkl. Basis-Beziehungen und Semestern an.
+
+        Erstellt Datenbank-Datensätze und Beziehungen.
+        Setzt ``self.student`` auf den neu angelegten Student.
+        Aktuell mehrere Commits durch Unterfunktionen.
 
         Args:
             cache (dict):
@@ -82,10 +87,6 @@ class Controller:
                 - semesteranzahl, modulanzahl
                 - startdatum, zieldatum (ISO-Strings)
                 - hochschulid, studiengang_id
-
-        Side Effects:
-            - Erstellt DB-Datensätze und Beziehungen.
-            - Setzt ``self.student`` auf den neu angelegten Student.
         """
         start_datum = datetime.date.fromisoformat(cache["startdatum"])
         zieldatum = datetime.date.fromisoformat(cache["zieldatum"])
@@ -110,12 +111,15 @@ class Controller:
         self.db.session.commit()
         logger.info("Account mit Beziehungen erstellt: %s", self.student.email)
 
-    # Relationships bei neuem Account
-    def add_hochschule_zu_student(self, cache: dict):
-        """Fügt dem Student eine Hochschule zu.
+    def add_hochschule_zu_student(self, cache: dict) -> None:
+        """Fügt dem Student eine Hochschule zu und committet.
 
         Args:
             cache (dict): erwartet ``hochschulid`` Eintrag
+
+        Raises:
+            RuntimeError: Wenn kein Student eingeloggt ist.
+            ValueError: Wenn Hochschule nicht gefunden werden kann.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: add_hochschule_zu_student aufgerufen.")
@@ -131,11 +135,15 @@ class Controller:
         self.db.session.commit()
         logger.info("Hochschule %s Student %s zugeordnet", hs.name, self.student.email)
 
-    def add_studiengang_zu_student(self, cache):
-        """Fügt einem Student einen Studiengang hinzu.
+    def add_studiengang_zu_student(self, cache: dict) -> None:
+        """Fügt einem Student einen Studiengang hinzu und committet.
 
         Args:
             cache (dict): erwartet ``studiengang_id`` Eintrag
+
+        Raises:
+            RuntimeError: Wenn kein Student eingeloggt ist.
+            ValueError: Wenn Studiengang nicht gefunden werden kann.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: add_hochschule_zu_student aufgerufen.")
@@ -151,11 +159,14 @@ class Controller:
         self.db.session.commit()
         logger.info("Studiengang %s Student %s zugeordnet", sg.name, self.student.email)
 
-    def add_studiengang_zu_hochschule(self, cache):
-        """Fügt einer Hochschule einen Studiengang hinzu.
+    def add_studiengang_zu_hochschule(self, cache: dict) -> None:
+        """Fügt einer Hochschule einen Studiengang hinzu und committet.
 
         Args:
             cache (dict): erwartet ``hochschulid`` und ``studiengang_id`` Eintrag.
+
+        Raises:
+            ValueError: Wenn Hochschule oder Studiengang nicht gefunden werden kann.
         """
         hs = self.db.lade_hochschule_mit_id(int(cache["hochschulid"]))
         sg = self.db.lade_studiengang_mit_id(int(cache["studiengang_id"]))
@@ -174,11 +185,13 @@ class Controller:
             self.db.session.commit()
             logger.info("Studiengang %s Hochschule %s zugeordnet", sg.name, hs.name)
 
-    def load_dashboard_data(self):
+    def load_dashboard_data(self) -> dict:
         """Gibt ein Dictionary mit allen benötigten Daten für die UI zurück.
 
         Returns:
             dict: Daten für das Dashboard (GUI).
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: load_dashboard_data aufgerufen.")
@@ -213,7 +226,7 @@ class Controller:
             "exmatrikulationsdatum": self.student.exmatrikulationsdatum,
         }
 
-    def get_time_progress(self):
+    def get_time_progress(self) -> float:
         """Gibt den zeitlichen Fortschritt des Studiums zwischen Beginn und Wunschdatum als float zurück.
 
         Falls ein Exmatrikulationsdatum vorhanden ist, wird dieses Datum,
@@ -221,7 +234,10 @@ class Controller:
         Ist das Wunschdatum des Studienendes schon überschritten wird 1 zurückgegeben.
 
         Returns:
-            progress: Float zwischen 0 und 1, gerundet auf 3 Nachkommastellen.
+            float: zwischen 0 und 1, gerundet auf 3 Nachkommastellen. Falls kein Wert berechnet werden kann,
+            wir ein Fallback von 0 zurückgegeben.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_time_progress aufgerufen.")
@@ -233,22 +249,37 @@ class Controller:
             bisher = (
                 self.student.exmatrikulationsdatum - self.student.start_datum
             ).days
-            progress = round(max(0, min(bisher / dauer, 1)), 3)
+            if dauer != 0:
+                progress = round(max(0, min(bisher / dauer, 1)), 3)
+            else:
+                logger.warning(
+                    "Dauer == 0, darf nicht durch 0 teilen: get_time_progress aufgerufen."
+                )
+                progress = float(0)
         else:
             bisher = (datetime.date.today() - self.student.start_datum).days
-            progress = round(max(0, min(bisher / dauer, 1)), 3)
+            if dauer != 0:
+                progress = round(max(0, min(bisher / dauer, 1)), 3)
+            else:
+                logger.warning(
+                    "dauer == 0, darf nicht durch 0 teilen: get_time_progress aufgerufen."
+                )
+                progress = float(0)
         logger.debug("get_time_progress ausgeführt")
         return progress
 
-    def get_semester_amount(self):
+    def get_semester_amount(self) -> float:
         """Gibt das Verhältnis der Dauer aller Semester zu der gewünschten Studiendauer zurück.
 
-        Dieser Wert wird für die akurate Skallierung der grafischen Semesteranzeige in der GUI verwendet.
+        Dieser Wert wird für die akkurate Skallierung der grafischen Semesteranzeige in der GUI verwendet.
         Liegt der Wunschabschluss vor dem Ende des letzten Semesters ist der Wert kleiner 1, ansonsten größer.
         Stimmen die Daten überein, ist er genau 1.
 
         Returns:
-            amount: Float, größer 0.
+            float: größer gleich 0. Falls kein Wert berechnet werden kann,
+            wir ein Fallback von 1 zurückgegeben.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_semester_amount aufgerufen.")
@@ -260,13 +291,24 @@ class Controller:
                 dauer_start_ziel = (
                     self.student.ziel_datum - self.student.start_datum
                 ).days
-                amount = round(
-                    # max(0, min(dauer_aller_semester / dauer_start_ziel, 1)), 3
-                    max(0, (dauer_aller_semester / dauer_start_ziel)),
-                    3,
-                )
-                logger.debug("get_semester_amount ausgeführt")
-                return amount
+                if dauer_start_ziel != 0:
+                    amount = round(
+                        # max(0, min(dauer_aller_semester / dauer_start_ziel, 1)), 3
+                        max(0, (dauer_aller_semester / dauer_start_ziel)),
+                        3,
+                    )
+                    logger.debug("get_semester_amount ausgeführt")
+                    return amount
+                else:
+                    logger.warning(
+                        "dauer_start_ziel == 0, darf nicht durch 0 teilen: get_semester_amount aufgerufen."
+                    )
+                    return float(1)
+        # wenn semester oder letztes Semester nicht gefunden wurden.
+        logger.warning(
+            "Keine Semester oder kein letztes Semester gefunden: get_semester_amount aufgerufen."
+        )
+        return float(1)
 
     def get_number_of_enrollments_with_status(self, status: EnrollmentStatus) -> int:
         """Gibt die Anzahl der eingeschriebenen Module mit bestimmten Status zurück.
@@ -276,6 +318,8 @@ class Controller:
 
         Returns:
             int: Anzahl der entsprechenden Einschreibungen.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning(
@@ -293,8 +337,12 @@ class Controller:
     def get_number_of_enrollments_with_status_ausstehend(self) -> int:
         """Gibt die Anzahl der nicht eingeschriebenen Module zurück.
 
+        Berechnung: modul_anzahl - module mit status.
+
         Returns:
             int: Anzahl der ausstehenden Einschreibungen.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning(
@@ -314,8 +362,13 @@ class Controller:
         return ausstehende
 
     def get_erarbeitete_ects(self) -> int:
-        """Gibt die bisher vom Studenten erarbeiteten ECTS-Punkte als int zurück."""
+        """Gibt die bisher vom Studenten erarbeiteten ECTS-Punkte zurück.
 
+        Returns:
+            int: die erarbeiteten ECTS-Punkte.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
+        """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_erarbeitete_ects aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
@@ -327,12 +380,14 @@ class Controller:
         logger.debug("get_erarbeitete_ects ausgeführt")
         return sum(liste)
 
-    def get_notendurchschnitt(self) -> float | str:
+    def get_notendurchschnitt(self) -> float | None:
         """Errechnet den Notendurchschnitt aller abgeschlossenen Module.
 
         Returns:
             float: Durchschnitt, falls Module abgeschlossen wurden.
-            str: "--", falls kein Modul abgeschlossen wurde.
+            None: falls kein Modul abgeschlossen wurde.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_notendurchschnitt aufgerufen.")
@@ -347,13 +402,15 @@ class Controller:
             return float(round((sum(liste) / len(liste)), 2))  # type: ignore
         else:
             logger.debug("get_notendurchschnitt ausgeführt")
-            return "--"
+            return None
 
-    def get_list_of_semester(self) -> list:
+    def get_list_of_semester(self) -> list[dict]:
         """Stellt alle Semester eines Studenten als dict dar und gibt eine Liste dieser Semester-Dictionaries zurück.
 
         Returns:
             list: Liste, mit Semester-Darstellungen in dict-Form.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_list_of_semester aufgerufen.")
@@ -374,11 +431,13 @@ class Controller:
         logger.debug("get_list_of_semester ausgeführt")
         return semester_list
 
-    def get_list_of_enrollments(self) -> list:
+    def get_list_of_enrollments(self) -> list[dict]:
         """Gibt eine Liste mit allen Enrollments (als dict) eines Studenten zurück.
 
         Returns:
             list: Liste mit Enrollments in dict-Form.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_list_of_enrollments aufgerufen.")
@@ -391,7 +450,7 @@ class Controller:
         logger.debug("get_list_of_enrollments ausgeführt")
         return enrollment_list
 
-    def get_list_of_kurse(self, modul: Modul) -> list:
+    def get_list_of_kurse(self, modul: Modul) -> list[dict]:
         """Stellt alle Kurse eines Moduls als dict dar und gibt eine Liste dieser Kurs-Dictionaries zurück.
 
         Args:
@@ -399,6 +458,8 @@ class Controller:
 
         Returns:
             list: Liste, mit Kurs-Darstellungen in dict-Form.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_list_of_kurse aufgerufen.")
@@ -415,7 +476,7 @@ class Controller:
         logger.debug("get_list_of_kurse ausgeführt")
         return kurse_list
 
-    def get_list_of_pruefungsleistungen(self, enrollment: Enrollment) -> list:
+    def get_list_of_pruefungsleistungen(self, enrollment: Enrollment) -> list[dict]:
         """Gibt eine Liste mit allen Prüfungsleistungen (als dict) eines Enrollments zurück.
 
         Args:
@@ -423,6 +484,8 @@ class Controller:
 
         Returns:
             list: Liste mit Prüfungsleistungen in dict-Form.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning(
@@ -437,7 +500,7 @@ class Controller:
         logger.debug("get_list_of_pruefungsleistungen ausgeführt")
         return pruefungsleistungen_list
 
-    def get_pl_dict(self, pl: Pruefungsleistung):
+    def get_pl_dict(self, pl: Pruefungsleistung) -> dict:
         """Stellt eine Prüfungsleistung als dict dar und gibt dieses zurück.
 
         Args:
@@ -466,6 +529,8 @@ class Controller:
 
         Returns:
             dict: Rückgabe von ``self.get_pl_dict()``, wenn Prüfungsleistung gefunden wurde, sonst ``{}``.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_pl_with_id aufgerufen.")
@@ -481,11 +546,15 @@ class Controller:
     def get_enrollment_data(self, enrollment_id: int) -> dict:
         """Gibt ein Enrollment in dict-Darstellung zurück, falls dieses per ID gefunden wurde.
 
+        Zuerst wird ``enrollment.aktualisiere_status()`` aufgerufen, damit der Enrollment-Status aktuell ist.
+
         Args:
             enrollment_id (int): ID des Enrollments, welches als dict repräsentiert werden soll.
 
         Returns:
             dict: Darstellung eines Enrollments, falls dieses gefunden wurde, sonst ``{}``.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_enrollment_data aufgerufen.")
@@ -515,7 +584,7 @@ class Controller:
             return enrollment_dict
         return {}
 
-    def erstelle_hochschulen_von_hs_dict(self):
+    def erstelle_hochschulen_von_hs_dict(self) -> None:
         """Erstellt Hochschulen, die in hs_dict (siehe import) gelistet sind."""
         hochschul_namen = {h.name for h in self.db.lade_alle_hochschulen()}
         for name in hs_dict.values():
@@ -524,7 +593,7 @@ class Controller:
             if name not in hochschul_namen:
                 self.erstelle_hochschule(hochschul_name=name)
 
-    def get_hs_kurzname_if_notwendig(self, name: str) -> str:
+    def get_hs_kurzname_if_notwendig(self, name: str, max_length: int = 50) -> str:
         """Gibt den Kurznamen einer Hochschule zurück, falls ihr Name zu lang ist.
 
         Falls der Name einer Hochschule länger ist als ``max_length``,
@@ -534,11 +603,11 @@ class Controller:
 
         Args:
             name (str): Name der Hochschule.
+            max_length (int): Maximale Zeichenanzahl, bevor Kurzname gesucht und ggf. zurückgegeben wird.
 
         Returns:
             str: Name der Hochschule; Kurzname, wenn in ``hs_dict_kurz``.
         """
-        max_length = 50
         if len(name) > max_length:
             for dictionary in hs_dict_kurz.values():
                 for long, short in dictionary.items():
@@ -559,7 +628,7 @@ class Controller:
         """Gibt ein Dictionary mit allen Hochschulen in der Datenbank zurück.
 
         Der Schlüssel ist die jeweilige Datenbank-ID der Hochschule,
-        der Name der Hochschule der zugehörige Wert.
+        der Name der Hochschule ist der zugehörige Wert.
 
         Returns:
             dict[int, str]: [Hochschul-ID, Hochschul-Name]
@@ -632,7 +701,7 @@ class Controller:
             return {0: ""}
 
     def erstelle_hochschule(self, hochschul_name: str) -> dict[int, str]:
-        """Legt eine Hochschule in der Datenbank an und gibt ein Dictionary mit ID (Schlüssel) und Name (Wert) zurück.
+        """Legt eine Hochschule in der Datenbank an (Commit) und gibt ein Dictionary mit ID (Schlüssel) und Name (Wert) zurück.
 
         Args:
             hochschul_name (str): Name der Hochschule.
@@ -648,7 +717,7 @@ class Controller:
     def erstelle_studiengang(
         self, studiengang_name: str, gesamt_ects_punkte: int
     ) -> dict[int, str]:
-        """Legt einen Studiengang in der Datenbank an und gibt ein Dictionary mit ID (Schlüssel) und Name (Wert) zurück.
+        """Legt einen Studiengang in der Datenbank an (Commit) und gibt ein Dictionary mit ID (Schlüssel) und Name (Wert) zurück.
 
         Args:
             studiengang_name (str): Name des Studiengangs.
@@ -664,9 +733,11 @@ class Controller:
 
     def erstelle_semester_fuer_student(self) -> None:
         """Erstellt aus Startdatum und Semesteranzahl einzelne Semesterobjekte, zu je 6 Monaten,
-        und legt sie in der Datenbank an.
+        legt sie in der Datenbank an und committet.
 
         Das Enddatum berechnet sich: Enddatum = Beginn + 6 Monate - 1 Tag.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: add_hochschule_zu_student aufgerufen.")
@@ -694,6 +765,7 @@ class Controller:
 
         ``check_deliverability=True`` prüft per DNS-Abfrage,
         ob die Domain der Email-Adresse Emails empfangen kann.
+        Kann offline oder abhängig vom Netzwerk/DNS fehlschlagen.
 
         Args:
             value (str): Eingegebene Email-Adresse.
@@ -751,6 +823,8 @@ class Controller:
         Returns:
             bool: True, wenn der Student schon in ein Modul mit
             gleichem Modulcode eingeschrieben ist, sonst False.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if self.student:
             for enrollment in self.student.enrollments:
@@ -768,6 +842,8 @@ class Controller:
 
         Returns:
             datetime.date: Studien-Startdatum des Studenten.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: get_startdatum aufgerufen.")
@@ -794,6 +870,10 @@ class Controller:
 
         Returns:
             dict: Gibt die Enrollment-Daten für die GUI zurück.
+
+        Raises:
+            RuntimeError: Wenn kein Student eingeloggt ist.
+            ValueError: Wenn Datumsformat falsch ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: erstelle_enrollment aufgerufen.")
@@ -880,17 +960,20 @@ class Controller:
         return enrollment_dict
 
     def change_pl(self, enrollment_id: int, pl_dict: dict) -> None:
-        """Ergänzt bei einer Prüfungsleistung Daten für Note und Datum.
+        """Setzt bei einer Prüfungsleistung Note und Datum, aktualisiert den Enrollment-Status und persistiert.
 
         Args:
             enrollment_id (int): ID des Enrollments.
             pl_dict (dict): Dictionary mit Eingabedaten (Note, Datum) und ID zur Prüfungsleistung.
+
+        Raises:
+            RuntimeError: Wenn kein Student eingeloggt ist.
+            ValueError: Wenn Datumsformat falsch ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_pl aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
 
-        # Einschreibedatum setzen
         pl_datum_str = pl_dict["datum"]
         try:
             pl_datum = datetime.date.fromisoformat(pl_datum_str)
@@ -909,14 +992,16 @@ class Controller:
                             enrollment.id,
                             pl.id,
                         )
-                        self.db.session.commit()
                         enrollment.aktualisiere_status()
+                        self.db.session.commit()
 
     def change_email(self, value: str) -> None:
-        """Weist dem Student eine neue Email-Adresse zu.
+        """Weist dem Student eine neue Email-Adresse zu und committet.
 
         Args:
             value (str): Neue Email-Adresse.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_email aufgerufen.")
@@ -926,10 +1011,12 @@ class Controller:
         logger.info("change_email: s.id=%s, email=%s", self.student.id, value)
 
     def change_password(self, value: str) -> None:
-        """Weist dem Student ein neues Passwort zu.
+        """Weist dem Student ein neues Passwort zu und committet.
 
         Args:
             value (str): Neues Passwort.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_password aufgerufen.")
@@ -939,10 +1026,12 @@ class Controller:
         logger.info("change_password: s.id=%s", self.student.id)
 
     def change_name(self, value: str) -> None:
-        """Weist dem Student einen neuen Namen zu.
+        """Weist dem Student einen neuen Namen zu und committet.
 
         Args:
             value (str): Neuer Name.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_name aufgerufen.")
@@ -952,10 +1041,12 @@ class Controller:
         logger.info("change_name: s.id=%s, name=%s", self.student.id, value)
 
     def change_matrikelnummer(self, value: str) -> None:
-        """Weist dem Student eine neue Matrikelnummer zu.
+        """Weist dem Student eine neue Matrikelnummer zu und committet.
 
         Args:
             value (str): Neue Matrikelnummer.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_matrikelnummer aufgerufen.")
@@ -965,10 +1056,12 @@ class Controller:
         logger.info("changed_matrikelnummer: s.id=%s, m.nr=%s", self.student.id, value)
 
     def change_semester_anzahl(self, value: int) -> None:
-        """Weist dem Student eine neue Semesteranzahl zu, löscht alte und erzeugt neue Semester.
+        """Weist dem Student eine neue Semesteranzahl zu, löscht alte und erzeugt neue Semester. Ein Commit wird durchgeführt.
 
         Args:
             value (int): Neue Semesteranzahl.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_semester_anzahl aufgerufen.")
@@ -982,10 +1075,12 @@ class Controller:
         )
 
     def change_startdatum(self, value: datetime.date) -> None:
-        """Weist dem Student ein neues Studienstartdatum zu, löscht alte und erzeugt neue Semester.
+        """Weist dem Student ein neues Studienstartdatum zu, löscht alte und erzeugt neue Semester. Ein Commit wird durchgeführt.
 
         Args:
             value (datetime.date): Neues Studienstartdatum.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_startdatum aufgerufen.")
@@ -997,10 +1092,12 @@ class Controller:
         logger.info("change_startdatum: s.id=%s to %s", self.student.id, value)
 
     def change_gesamt_ects(self, value: int) -> None:
-        """Weist dem Studiengang des Studenten eine neue Gesamtanzahl an ECTS Punkten zu.
+        """Weist dem Studiengang des Studenten eine neue Gesamtanzahl an ECTS Punkten zu und committet.
 
         Args:
             value (int): Neue Gesamtanzahl an ECTS Punkten des Studiengangs.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_gesamt_ects aufgerufen.")
@@ -1010,10 +1107,12 @@ class Controller:
         logger.info("change_gesamt_ects: s.id=%s to %s", self.student.id, value)
 
     def change_modul_anzahl(self, value: int) -> None:
-        """Weist dem Student eine neue Anzahl an Modulen zu.
+        """Weist dem Student eine neue Anzahl an Modulen zu und committet.
 
         Args:
             value (int): Neue Anzahl an Modulen.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_modul_anzahl aufgerufen.")
@@ -1023,13 +1122,15 @@ class Controller:
         logger.info("change_modul_anzahl: s.id=%s to %s", self.student.id, value)
 
     def change_hochschule(self, hochschul_id: int, hochschul_name: str) -> None:
-        """Weist dem Student eine neue Hochschule zu.
+        """Weist dem Student eine neue Hochschule zu und committet.
 
         Studiengangsänderungen werden über ``change_studiengang`` abgewickelt.
 
         Args:
             hochschul_id (int): ID der neuen Hochschule.
             hochschul_name (str): Name der neuen Hochschule.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_hochschule aufgerufen.")
@@ -1042,10 +1143,12 @@ class Controller:
         self.add_hochschule_zu_student(cache=cache)
         self.change_studiengang(value=self.student.studiengang.name)
         self.db.session.commit()
-        logger.info("change_hochschule: s.id=%s to hs.id=%s", self.student.id, id)
+        logger.info(
+            "change_hochschule: s.id=%s to hs.id=%s", self.student.id, hochschul_id
+        )
 
     def change_studiengang(self, value: str) -> None:
-        """Weist dem Student einen neuen Studiengang zu.
+        """Weist dem Student einen neuen Studiengang zu und committet.
 
         Die Enrollments des Studenten werden gelöscht, da ein neuer Studiengang andere Module hat.
         Wird der neue Studiengang an der Hochschule des Studenten gefunden, wird er ihm zugewiesen.
@@ -1054,6 +1157,8 @@ class Controller:
 
         Args:
             value (str): Name des neuen Studiengangs.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_studiengang aufgerufen.")
@@ -1084,10 +1189,12 @@ class Controller:
         logger.info("change_studiengang: s.id=%s to sg=%s", self.student.id, value)
 
     def change_zieldatum(self, value: datetime.date) -> None:
-        """Weist dem Student ein neues Studienzieldatum zu.
+        """Weist dem Student ein neues Studienzieldatum zu und committet.
 
         Args:
             value (datetime.date): Neues Studienzieldatum.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_zieldatum aufgerufen.")
@@ -1097,10 +1204,12 @@ class Controller:
         logger.info("change_zieldatum: s.id=%s to %s", self.student.id, value)
 
     def change_zielnote(self, value: float) -> None:
-        """Weist dem Student eine neue Studienzielnote zu.
+        """Weist dem Student eine neue Studienzielnote zu und committet.
 
         Args:
             value (float): Neue Studienzielnote.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_zielnote aufgerufen.")
@@ -1110,10 +1219,12 @@ class Controller:
         logger.info("change_zielnote: s.id=%s to %s", self.student.id, value)
 
     def change_exmatrikulationsdatum(self, value: datetime.date | None) -> None:
-        """Weist dem Student ein (neues) Exmatrikulationsdatum zu oder setzt es auf ``None``.
+        """Weist dem Student ein (neues) Exmatrikulationsdatum zu oder setzt es auf ``None``. Ein Commit wird durchgeführt.
 
         Args:
             value (datetime.date | None): (Neues) Exmatrikulationsdatum oder Überschreiben mit ``None``.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
         """
         if not self.student:
             logger.warning("Nicht eingeloggt: change_exmatrikulationsdatum aufgerufen.")
@@ -1125,7 +1236,7 @@ class Controller:
         )
 
     def logout(self) -> None:
-        """Loggt den aktuellen Student aus und setzt die Datenbank-Session zurück.
+        """Loggt den aktuellen Student aus, setzt die Datenbank-Session zurück und erzeugt eine neue Session.
 
         Raises:
             RuntimeError: Wenn keine neue Session erstellt werden kann oder der Student nicht eingeloggt ist.
@@ -1153,7 +1264,10 @@ class Controller:
             )
 
     def delete_student(self) -> None:
-        """Löscht den Account des Studenten. Ruft Logout auf."""
+        """Löscht den Account des Studenten und committet. Ruft Logout auf.
+
+        Raises: RuntimeError: Wenn kein Student eingeloggt ist oder wenn Student löschen fehlschlägt.
+        """
         if not self.student:
             logger.warning("Nicht eingeloggt: delete_student aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")

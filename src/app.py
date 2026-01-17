@@ -1536,7 +1536,7 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
         self.menu_button.pack(anchor="e", pady=(0, 2))
 
         # Name-Studiengang-Hochschule-Label
-        name_label_text = f"{self.data['name']}\n{self.data['studiengang']}\n{self.controller.get_hs_kurzname_if_notwendig(self.data['hochschule'])}"
+        name_label_text = f"{self.data['name']}\n{self.data['studiengang']}\n{self.controller.get_hs_kurzname_if_notwendig(self.data['hochschule'], max_length=50)}"
         name_label = ctk.CTkLabel(
             right_frame,
             text=name_label_text,
@@ -1966,13 +1966,18 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
         noten_frame = ctk.CTkFrame(self, fg_color=("gray95", "gray75"))
         noten_frame.grid(row=6, column=0, columnspan=2, padx=10, pady=5)
 
-        if self.data["notendurchschnitt"] != "--":
+        if self.data["notendurchschnitt"] is not None:
             if self.data["notendurchschnitt"] > self.data["zielnote"]:
                 noten_color = ROT
             else:
                 noten_color = GRUEN
         else:
             noten_color = "black"
+
+        if self.data["notendurchschnitt"] is None:
+            notendurchschnitt_txt = "--"
+        else:
+            notendurchschnitt_txt = self.data["notendurchschnitt"]
 
         ds_text_label = ctk.CTkLabel(
             noten_frame,
@@ -1985,7 +1990,7 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
             noten_frame,
             font=self.fonts.H1,
             text_color=noten_color,
-            text=f"{self.data['notendurchschnitt']}",
+            text=f"{notendurchschnitt_txt}",
         )
         ziel_text_label = ctk.CTkLabel(
             noten_frame,
