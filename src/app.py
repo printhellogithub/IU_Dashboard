@@ -9,9 +9,13 @@ from email_validator import EmailNotValidError
 from typing import Callable
 import textwrap
 import webbrowser
+import argparse
+import logging
 
 from src.main import Controller
 from utils.logging_config import setup_logging
+
+logger = logging.getLogger(__name__)
 
 # GLOBAL - Farben
 BACKGROUND = "#FFFFFF"
@@ -59,6 +63,35 @@ def from_iso_to_ddmmyyyy(date: str | datetime.date | None) -> str:
             return date
     elif date is None:
         return ""
+
+
+def parse_args() -> argparse.Namespace:
+    """Parsed Command Line Argumente und fügt mögliche Argumente hinzu.
+
+    Konfiguriert folgende Command Line Argumente:
+        * ``--offline``: Aktiviert Offline-Modus.
+        * ``--debug``: Aktivert Logging-DEBUG-Level.
+        * ``--log_to_console``: Aktiviert Log-Anzeige in der Console
+        * ``--follow_system_mode``: Light-/Dark-Mode wird von System übernommen
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--offline", action="store_true", help="Startet das Programm im Offline-Modus"
+    )
+    parser.add_argument(
+        "--debug", action="store_true", help="Aktiviert Logging-DEBUG-Level"
+    )
+    parser.add_argument(
+        "--log_to_console",
+        action="store_true",
+        help="Aktiviert Log-Anzeige in der Console",
+    )
+    parser.add_argument(
+        "--follow_system_mode",
+        action="store_true",
+        help="Light-/Dark-Mode wird von System übernommen",
+    )
+    return parser.parse_args()
 
 
 class Fonts:
@@ -762,7 +795,11 @@ class NewUserFrame(ctk.CTkFrame, CalendarMixin):
     """
 
     def __init__(
-        self, master, controller: Controller, go_to_login, go_to_studiengang_auswahl
+        self,
+        master,
+        controller: Controller,
+        go_to_login,
+        go_to_studiengang_auswahl,
     ) -> None:
         """Initialisiert den Registrierungs-Frame und baut Header und Formular auf.
 
@@ -1297,6 +1334,12 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         self.entry_ects.pack(pady=10)
         self.label_no_int = ctk.CTkLabel(sa_frame, text="", text_color=ROT)
         self.label_no_int.pack(pady=5)
+        ToolTip(
+            self.entry_ects,
+            text="Wenn der Studiengang in der Datenbank vorhanden ist, \n"
+            "wird der vorhandene Wert an ECTS-Punkten \n"
+            "für diesen Studiengang verwendet.",
+        )
 
         # Modul-Anzahl
         self.label_modulanzahl = ctk.CTkLabel(
@@ -4344,8 +4387,8 @@ class UeberFrame(ctk.CTkFrame):
             text="Diese Software nutzt folgende Open-Source-Bibliotheken: "
             "SQLAlchemy (MIT), CustomTkinter (MIT), tkcalendar (MIT), "
             "argon2-cffi (MIT), python-dateutil (Apache 2.0), "
-            "email-validator (CC0). Vollständige Lizenzen siehe THIRD_PARTY_LICENSES.txt"
-            "\nDie Liste deutscher Hochschulen wird von Hochschulkompass.de als txt-Datei zur Verfügung gestellt.",
+            "email-validator (CC0). Vollständige Lizenzen siehe THIRD_PARTY_LICENSES.txt.\n"
+            "Die Liste deutscher Hochschulen wird von Hochschulkompass.de als txt-Datei zur Verfügung gestellt.",
             font=self.fonts.TEXT,
         )
         cc_label.pack(pady=20)
@@ -4400,12 +4443,29 @@ class App(ctk.CTk):
         current_frame (ctk.CTkFrame): Der aktuell angezeigte Frame.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        offline: bool = False,
+        debug: bool = False,
+        log_to_console: bool = False,
+        follow_system_mode: bool = False,
+    ) -> None:
         """
         Initialisiert das Dashboard Programm.
-        """
 
-        setup_logging(debug=False, log_to_console=True)
+        * Setzt Logging auf.
+
+        Args:
+            offline (bool): Wenn True, wird das Programm im Offline-Modus gestartet.
+            debug (bool): Wenn True, aktiviert Logging auf DEBUG Level.
+            log_to_console (bool): Wenn True, aktiviert Logging-Anzeige in der Console.
+            follow_system_mode (bool): Wenn True, wird Light-/Dark-Mode vom System übernommen.
+        """
+        setup_logging(debug=debug, log_to_console=log_to_console)
+        logger.info(
+            "Programmstart: Level=Debug: %s, log_to_console: %s.", debug, log_to_console
+        )
         super().__init__(fg_color=(BACKGROUND, BACKGROUND_DARK))
 
         # vorerst deaktiviert
@@ -4413,7 +4473,7 @@ class App(ctk.CTk):
         ctk.FontManager.load_font(str(FONT_PATH_MATERIAL))
         self.fonts = Fonts()
 
-        self.controller = Controller(seed=True)
+        self.controller = Controller(seed=True, offline=offline)
 
         # Konfiguriere Programmfenster
         self.title("Dashboard")
@@ -4421,12 +4481,14 @@ class App(ctk.CTk):
         self.minsize(960, 640)
         self.maxsize(1920, 1080)
         # Erzwinge Tag-Modus bis Darkmode ausreichend getestet
-        ctk.set_appearance_mode("light")
-        style = ttk.Style()
-        try:
-            style.theme_use("default")
-        except Exception:
-            pass
+        logger.info("follow_system_mode: %s", follow_system_mode)
+        if not follow_system_mode:
+            ctk.set_appearance_mode("light")
+            style = ttk.Style()
+            try:
+                style.theme_use("default")
+            except Exception:
+                pass
         # Zentriere Fenster auf Bildschirm
         self.center_window()
         self.current_frame = None
@@ -4705,5 +4767,11 @@ class App(ctk.CTk):
 
 
 if __name__ == "__main__":
-    app = App()
+    args = parse_args()
+    app = App(
+        offline=args.offline,
+        debug=args.debug,
+        log_to_console=args.log_to_console,
+        follow_system_mode=args.follow_system_mode,
+    )
     app.mainloop()

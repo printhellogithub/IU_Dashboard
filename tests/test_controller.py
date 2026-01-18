@@ -213,7 +213,6 @@ def test_counts_and_avg(controller, db):
     """Testet korrekte Zählung der Enrollments mit verschiedenem Status und ECTS-Summe.
 
     Verifiziert:
-        - Anzahl ausstehender Enrollments,
         - korrekt aufsummierte ECTS-Punkte,
         - korrekte Berechnung des Notendurchschnitts
           über mehrere abgeschlossene Module.
@@ -260,7 +259,6 @@ def test_counts_and_avg(controller, db):
     # e1 abschließen
     pl = controller.get_enrollment_data(e1["id"])["pruefungsleistungen"][0]
     controller.change_pl(e1["id"], {"id": pl["id"], "datum": "2024-02-01", "note": 2.0})
-    assert controller.get_number_of_enrollments_with_status_ausstehend() >= 0
     assert controller.get_erarbeitete_ects() == 5
     assert controller.get_notendurchschnitt() == 2.0
     pl = controller.get_enrollment_data(e2["id"])["pruefungsleistungen"][0]

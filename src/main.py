@@ -25,12 +25,18 @@ class Controller:
         - Bereitstellung von Daten-Dicts für die UI.
     """
 
-    def __init__(self, db: DatabaseManager | None = None, seed: bool = True):
+    def __init__(
+        self,
+        db: DatabaseManager | None = None,
+        seed: bool = True,
+        offline: bool = False,
+    ):
         """Initialisiert den Controller mit Instanz für Datenbankzugriffe.
 
         Args:
             db: DatabaseManager-Instanz, default: None.
-            seed (bool): default: True. Wenn True, werden Hochschulen aus ``hs_dict`` erstellt, falls sie fehlen.
+            seed (bool): default: ``True``. Wenn ``True``, werden Hochschulen aus ``hs_dict`` erstellt, falls sie fehlen.
+            offline: Wenn ``True`` ist Offline-Modus aktiv, sodass ``email_validator`` keine DNS-Abfragen macht (``check_deliverability=False``).
 
         Attribute:
             db: DatabaseManager-Instanz, für Datenbankzugriffe (langlebige Session).
@@ -39,6 +45,11 @@ class Controller:
         self.db = db or DatabaseManager()
 
         self.student: Student | None = None
+
+        self.offline = offline
+        if self.offline:
+            logger.info("Offline-Modus aktiv.")
+
         if seed:
             self.erstelle_hochschulen_von_hs_dict()
             logger.debug("Hochschulen aus hs_dict erstellt, falls nicht vorhanden.")
@@ -62,9 +73,9 @@ class Controller:
         """
         verified_email = self.validate_email_for_login(email)
         if isinstance(verified_email, EmailNotValidError):
-            logger.debug(f"EmailNotValidError: {verified_email}")
+            logger.debug("EmailNotValidError: %s", verified_email)
             return False
-        logger.debug(f"Login-Versuch mit {verified_email}")
+        logger.debug("Login-Versuch mit  %s", verified_email)
         student = self.db.lade_student_mit_beziehungen(verified_email)
         if student and student.verify_password(password):
             self.student = student
@@ -196,6 +207,20 @@ class Controller:
         if not self.student:
             logger.warning("Nicht eingeloggt: load_dashboard_data aufgerufen.")
             raise RuntimeError("Nicht eingeloggt")
+
+        abgeschlossen = self.get_number_of_enrollments_with_status(
+            EnrollmentStatus.ABGESCHLOSSEN
+        )
+        in_bearbeitung = self.get_number_of_enrollments_with_status(
+            EnrollmentStatus.IN_BEARBEITUNG
+        )
+        nicht_bestanden = self.get_number_of_enrollments_with_status(
+            EnrollmentStatus.NICHT_BESTANDEN
+        )
+        ausstehend = self.student.modul_anzahl - (
+            abgeschlossen + in_bearbeitung + nicht_bestanden
+        )
+
         return {
             "email": self.student.email,
             "name": self.student.name,
@@ -211,16 +236,10 @@ class Controller:
             "enrollments": self.get_list_of_enrollments(),
             "heute": datetime.date.today(),
             "time_progress": self.get_time_progress(),
-            "abgeschlossen": self.get_number_of_enrollments_with_status(
-                EnrollmentStatus.ABGESCHLOSSEN
-            ),
-            "in_bearbeitung": self.get_number_of_enrollments_with_status(
-                EnrollmentStatus.IN_BEARBEITUNG
-            ),
-            "nicht_bestanden": self.get_number_of_enrollments_with_status(
-                EnrollmentStatus.NICHT_BESTANDEN
-            ),
-            "ausstehend": self.get_number_of_enrollments_with_status_ausstehend(),
+            "abgeschlossen": abgeschlossen,
+            "in_bearbeitung": in_bearbeitung,
+            "nicht_bestanden": nicht_bestanden,
+            "ausstehend": ausstehend,
             "erarbeitete_ects": self.get_erarbeitete_ects(),
             "notendurchschnitt": self.get_notendurchschnitt(),
             "exmatrikulationsdatum": self.student.exmatrikulationsdatum,
@@ -333,33 +352,6 @@ class Controller:
         ]
         logger.debug("get_number_of_enrollments_with_status %s ausgeführt", str(status))
         return len(liste)
-
-    def get_number_of_enrollments_with_status_ausstehend(self) -> int:
-        """Gibt die Anzahl der nicht eingeschriebenen Module zurück.
-
-        Berechnung: modul_anzahl - module mit status.
-
-        Returns:
-            int: Anzahl der ausstehenden Einschreibungen.
-
-        Raises: RuntimeError: Wenn kein Student eingeloggt ist.
-        """
-        if not self.student:
-            logger.warning(
-                "Nicht eingeloggt: get_number_of_enrollments_with_status_ausstehend aufgerufen."
-            )
-            raise RuntimeError("Nicht eingeloggt")
-        ausstehende = self.student.modul_anzahl - (
-            self.get_number_of_enrollments_with_status(EnrollmentStatus.ABGESCHLOSSEN)
-            + self.get_number_of_enrollments_with_status(
-                EnrollmentStatus.IN_BEARBEITUNG
-            )
-            + self.get_number_of_enrollments_with_status(
-                EnrollmentStatus.NICHT_BESTANDEN
-            )
-        )
-        logger.debug("get_number_of_enrollments_with_status_ausstehend ausgeführt")
-        return ausstehende
 
     def get_erarbeitete_ects(self) -> int:
         """Gibt die bisher vom Studenten erarbeiteten ECTS-Punkte zurück.
@@ -694,10 +686,17 @@ class Controller:
                 )
                 return {studiengang.id: studiengang.name}
             else:
-                logger.debug("get_studiengang_id ausgeführt: {0: }")
+                logger.debug(
+                    "get_studiengang_id ausgeführt: Studiengang nicht gefunden. Studiengang: %s, HS-ID: %s",
+                    studiengang_name,
+                    hochschule_id,
+                )
                 return {0: ""}
         else:
-            logger.debug("get_studiengang_id ausgeführt: {0: }")
+            logger.debug(
+                "get_studiengang_id ausgeführt: Hochschule nicht gefunden. Hs-ID: %s",
+                hochschule_id,
+            )
             return {0: ""}
 
     def erstelle_hochschule(self, hochschul_name: str) -> dict[int, str]:
@@ -774,8 +773,12 @@ class Controller:
             str: Normalisierte Email-Adresse bei erfolgreicher Prüfung.
             EmailNotValidError: Infotext, weshalb die Prüfung fehlgeschlagen ist.
         """
+        if self.offline:
+            online = False
+        else:
+            online = True
         try:
-            emailinfo = validate_email(value, check_deliverability=True)
+            emailinfo = validate_email(value, check_deliverability=online)
             email = emailinfo.normalized
             return email
         except EmailNotValidError as e:
