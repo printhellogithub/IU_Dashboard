@@ -642,11 +642,11 @@ class Controller:
         logger.debug("get_hochschulen_dict ausgeführt")
         return hochschulen_dict
 
-    def get_studiengaenge_von_hs_dict(self, hochschule_id: int) -> dict[int, str]:
-        """Gibt ein Dictionary mit allen Studiengängen einer Hochschule in der Datenbank zurück.
+    def get_studiengaenge_von_hs(self, hochschule_id: int) -> dict[int, str]:
+        """Gibt ein Dictionary mit allen Studiengängen (in Kleinbuchstaben) einer Hochschule in der Datenbank zurück.
 
         Der Schlüssel ist die jeweilige Datenbank-ID des Studiengangs,
-        der Name des Studiengangs der zugehörige Wert.
+        der Name des Studiengangs (.lower()) der zugehörige Wert.
         Falls die Hochschule nicht gefunden wird, wird ``{0: ""}`` zurückgegeben.
         Falls keine Studiengänge angelegt sind, wird ``{}`` zurückgegeben
 
@@ -661,11 +661,11 @@ class Controller:
             studiengaenge = self.db.lade_alle_studiengaenge_von_hochschule(hochschule)
             studiengaenge_dict = {}
             for studiengang in studiengaenge:
-                studiengaenge_dict[studiengang.id] = studiengang.name
-            logger.debug("get_studiengaenge_von_hs_dict ausgeführt")
+                studiengaenge_dict[studiengang.id] = studiengang.name.lower()
+            logger.debug("get_studiengaenge_von_hs ausgeführt")
             return studiengaenge_dict
         else:
-            logger.debug("get_studiengaenge_von_hs_dict ausgeführt - keine gefunden")
+            logger.debug("get_studiengaenge_von_hs ausgeführt - keine gefunden")
             return {0: ""}
 
     def get_studiengang_id(
@@ -901,7 +901,7 @@ class Controller:
             )
             logger.info("Modul erstellt: %s", modul.id)
         # Kurse erstellen, falls nicht vorhanden
-        for key, value in enrollment_cache["kurse_list"].items():
+        for key, value in enrollment_cache["kurse_dict"].items():
             kursnummer = key
             kurs = self.db.lade_kurs(kursnummer=kursnummer)
             if kurs is None:
@@ -1166,7 +1166,7 @@ class Controller:
         studiengang = [
             studiengang
             for studiengang in self.student.hochschule.studiengaenge
-            if studiengang.name == value
+            if studiengang.name.lower() == value.lower()
         ]
         self.student.enrollments.clear()
         if studiengang:

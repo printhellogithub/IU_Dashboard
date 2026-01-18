@@ -11,7 +11,7 @@ from src.models import (
     Pruefungsleistung,
     Semester,
 )
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 import logging
@@ -398,7 +398,7 @@ class DatabaseManager:
     def lade_studiengang_mit_name(
         self, hochschule_id: int, studiengang_name: str
     ) -> Studiengang | None:
-        """Lädt einen Studiengang einer Hochschule anhand des Namens.
+        """Lädt einen Studiengang einer Hochschule anhand des Namens (Groß/Kleinschreibung unabhängig).
 
         Args:
             hochschule_id (int): ID der Hochschule.
@@ -410,7 +410,7 @@ class DatabaseManager:
         stmt = (
             select(Studiengang)
             .where(Studiengang.hochschule_id == hochschule_id)
-            .where(Studiengang.name == studiengang_name)
+            .where(func.lower(Studiengang.name) == studiengang_name.lower())
         )
         return self.session.scalars(stmt).first()
 

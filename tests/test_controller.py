@@ -86,7 +86,7 @@ def test_enrollment_flow(controller):
         "modul_name": "Mathe I",
         "modul_code": "MATH1",
         "modul_ects": 5,
-        "kurse_list": [{"K1": "Algebra"}],
+        "kurse_dict": {"K1": "Algebra"},
         "pl_anzahl": 1,
         "startdatum": "2024-02-01",
     }
@@ -128,7 +128,7 @@ def test_changes(controller):
 
     controller.change_email("new@gmail.com")
     assert s.email == "new@gmail.com"
-    controller.change_pw("newpw")
+    controller.change_password("newpw")
     assert s.verify_password("newpw")
     controller.change_name("Neu")
     assert s.name == "Neu"
@@ -157,7 +157,7 @@ def test_time_progress(controller, db):
         2.0,
     )
     controller.student = s
-    controller.erstelle_semester_fuer_student(s)
+    controller.erstelle_semester_fuer_student()
     # ohne Exmatrikulation
     p = controller.get_time_progress()
     assert p == 1.0
@@ -193,7 +193,7 @@ def test_counts_and_avg(controller, db):
             "modul_name": "M1",
             "modul_code": "M1",
             "modul_ects": 5,
-            "kurse_list": [],
+            "kurse_dict": {},
             "pl_anzahl": 1,
             "startdatum": "2024-01-02",
         }
@@ -203,7 +203,7 @@ def test_counts_and_avg(controller, db):
             "modul_name": "M2",
             "modul_code": "M2",
             "modul_ects": 5,
-            "kurse_list": [],
+            "kurse_dict": {},
             "pl_anzahl": 1,
             "startdatum": "2024-01-03",
         }

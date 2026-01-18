@@ -634,7 +634,7 @@ class MenuMixin:
                 border_width=1,
                 text_color="black",
                 text=key,
-                command=lambda v=value: top.after(0, lambda: (self.close_menu(), v())),
+                command=lambda v=value: (self.close_menu(), v()),
             )
             button.pack(fill="both", expand=True, pady=1, padx=1)
 
@@ -1019,12 +1019,12 @@ class NewUserFrame(ctk.CTkFrame, CalendarMixin):
         """Validiert die Formulareingaben und leitet bei Erfolg weiter.
 
         Ablauf:
-            1. E-Mail prüfen und ausschließen, dass es schon einen Account gibt.
-            2. Pflichtfelder (Passwort, Name, Matrikelnummer, Semesteranzahl,
+            * E-Mail prüfen und ausschließen, dass es schon einen Account gibt.
+            * Pflichtfelder (Passwort, Name, Matrikelnummer, Semesteranzahl,
             Hochschule, Start- und Zieldatum) auf leere Eingaben prüfen.
-            3. Hochschule neu anlegen, falls sie noch nicht
+            * Hochschule neu anlegen, falls sie noch nicht
             in der Datenbank existiert.
-            4. Alle validierten Eingaben in einem ``cache``-Dictionary sammeln
+            * Alle validierten Eingaben in einem ``cache``-Dictionary sammeln
             und an ``go_to_studiengang_auswahl`` übergeben.
 
         Bei Validierungsfehlern werden entsprechende Fehlermeldungen in den
@@ -1287,7 +1287,13 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
             sa_frame, text="Wie viele ECTS-Punkte hat dein Studium?"
         )
         self.label_ects.pack(pady=5)
-        self.entry_ects = ctk.CTkEntry(sa_frame, placeholder_text="ECTS-Punkte")
+        # self.entry_ects = ctk.CTkEntry(sa_frame, placeholder_text="ECTS-Punkte")
+        # self.entry_ects.pack(pady=10)
+        self.entry_ects = ctk.CTkComboBox(
+            sa_frame,
+            # placeholder_text="ECTS-Punkte",
+            values=[str(p) for p in range(30, 390, 30)],
+        )
         self.entry_ects.pack(pady=10)
         self.label_no_int = ctk.CTkLabel(sa_frame, text="", text_color=ROT)
         self.label_no_int.pack(pady=5)
@@ -1328,6 +1334,8 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
     def validate_ects(self, ects: str) -> bool:
         """Prüft, ob der eingegebene ECTS-Wert gültig ist.
 
+        Wird nicht mehr benötigt, da CTk.Entry zu CTk.Combobox geändert wurde.
+
         Eine Eingabe ist gültig, wenn sie sich in eine Ganzzahl zwischen
         1 und 500 umwandeln lässt. Im Fehlerfall wird eine passende
         Fehlermeldung im Label ``label_no_int`` angezeigt.
@@ -1354,13 +1362,13 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         """Validiert die Eingaben und erstellt bei Erfolg den Account.
 
         Ablauf:
-            1. ECTS-Eingabe validieren (Ganzzahl zwischen 1 und 500).
-            2. Studiengangsname prüfen (nicht leer, maximale Länge 50 Zeichen).
-            3. Prüfen, ob der Studiengang für die gewählte Hochschule bereits
+            * ECTS-Punkte-Eingabe validieren (Ganzzahl zwischen 1 und 500).
+            * Studiengangsname prüfen (nicht leer, maximale Länge 50 Zeichen).
+            * Prüfen, ob der Studiengang für die gewählte Hochschule bereits
             existiert; falls nicht, wird er neu angelegt.
-            4. Studiengang-ID und weitere Angaben (ECTS, Modulanzahl) in den
+            * Studiengang-ID und weitere Angaben (ECTS, Modulanzahl) in den
             Cache übernehmen.
-            5. Über den Controller den Account erstellen und zum Dashboard wechseln.
+            * Über den Controller den Account erstellen und zum Dashboard wechseln.
 
         Bei Validierungsfehlern werden entsprechende Fehlermeldungen in den
         dafür vorgesehenen Labels angezeigt und die Methode bricht ab.
@@ -1377,17 +1385,17 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         if len(self.entry_studiengang.get()) > 50:
             self.label_leere_felder.configure(text="Name des Studiengangs zu lang")
             return
-        self.selected_studiengang_name = self.entry_studiengang.get()
+        self.selected_studiengang_name = self.entry_studiengang.get().strip()
 
         if self.selected_studiengang_name.strip() == "":
             self.label_leere_felder.configure(text="Etwas ist nicht ausgefüllt.")
             return
 
         if (
-            self.selected_studiengang_name
-            not in self.controller.get_studiengaenge_von_hs_dict(
+            self.selected_studiengang_name.lower()
+            not in self.controller.get_studiengaenge_von_hs(
                 self.cache["hochschulid"]
-            )
+            ).values()
         ):
             studiengang = self.controller.erstelle_studiengang(
                 studiengang_name=self.selected_studiengang_name,
@@ -1398,7 +1406,7 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
                 self.selected_studiengang_name, self.cache["hochschulid"]
             )
         for k, v in studiengang.items():
-            if v == self.selected_studiengang_name:
+            if v.lower() == self.selected_studiengang_name.lower():
                 self.selected_studiengang_id = k
             else:
                 raise ValueError(
@@ -1624,11 +1632,14 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
 
         if (
             self.data["exmatrikulationsdatum"]
-            and self.data["erarbeitete_ects"] != self.data["gesamt_ects"]
+            and self.data["erarbeitete_ects"] < self.data["gesamt_ects"]
         ):
             progress_color = ROT
             background_color = HELLROT
-        elif self.data["erarbeitete_ects"] == self.data["gesamt_ects"]:
+        elif (
+            self.data["exmatrikulationsdatum"]
+            and self.data["erarbeitete_ects"] >= self.data["gesamt_ects"]
+        ):
             progress_color = GRUEN
             background_color = HELLGRUEN
         else:
@@ -1692,13 +1703,13 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
                 # abgebrochenes Studium -> letztes begonnenes Semester -> rot
                 semester["status"] == "SemesterStatus.AKTUELL"
                 and self.data["exmatrikulationsdatum"] is not None
-                and self.data["erarbeitete_ects"] != self.data["gesamt_ects"]
+                and self.data["erarbeitete_ects"] < self.data["gesamt_ects"]
             ):
                 color = ROT
             elif (
                 # alle ECTS-Punkte erreicht -> aktuelles/letztes begonnenes Semester (erfolgreich exmatrikuliert) -> grün
                 semester["status"] == "SemesterStatus.AKTUELL"
-                and self.data["erarbeitete_ects"] == self.data["gesamt_ects"]
+                and self.data["erarbeitete_ects"] >= self.data["gesamt_ects"]
             ):
                 color = GRUEN
             elif semester["status"] == "SemesterStatus.ZUKUENFTIG":
@@ -1929,7 +1940,7 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
         ects_color = GRUEN
         if (
             self.data["exmatrikulationsdatum"] is not None
-            and self.data["erarbeitete_ects"] != self.data["gesamt_ects"]
+            and self.data["erarbeitete_ects"] < self.data["gesamt_ects"]
         ):
             ects_color = ROT
 
@@ -2279,11 +2290,11 @@ class AddEnrollmentFrame(ctk.CTkScrollableFrame, CalendarMixin):
         """Validiert die Eingaben und legt bei Erfolg ein neues Enrollment an.
 
         Ablauf:
-            1. Pflichtfelder (Modulname, Modul-Code, ECTS-Wert, Startdatum) prüfen.
-            2. Kursliste auslesen und prüfen, ob mindestens ein Kurs angegeben ist.
-            3. Enrollment-Daten in einem Cache-Dictionary sammeln und prüfen,
+            * Pflichtfelder (Modulname, Modul-Code, ECTS-Wert, Startdatum) prüfen.
+            * Kursliste auslesen und prüfen, ob mindestens ein Kurs angegeben ist.
+            * Enrollment-Daten in einem Cache-Dictionary sammeln und prüfen,
             ob bereits eine Einschreibung für dieses Modul existiert.
-            4. Bei Erfolg Enrollment über den Controller anlegen und zur
+            * Bei Erfolg Enrollment über den Controller anlegen und zur
             entsprechenden Detailansicht navigieren.
 
         Bei Validierungsfehlern werden entsprechende Fehlermeldungen in den
@@ -2321,7 +2332,7 @@ class AddEnrollmentFrame(ctk.CTkScrollableFrame, CalendarMixin):
             "modul_name": self.selected_modul_name,
             "modul_code": self.selected_modul_code,
             "modul_ects": self.selected_modul_ects,
-            "kurse_list": self.selected_kurse_dict,
+            "kurse_dict": self.selected_kurse_dict,
             "pl_anzahl": self.selected_pl_anzahl,
             "startdatum": self.selected_startdatum_str,
         }
@@ -3422,30 +3433,33 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
         )
         self.startdatum_not_valid.grid(row=5, column=3, sticky="ew", padx=5, pady=0)
 
+        # Deaktiviert, da sonst Studenten die ECTS-Punkte eines Studiengangs ändern können,
+        # das sollte nur durch Admins oder Hochschulen möglich sein.
+
         # Gesamt-ECTS-Punkte
-        self.label_ects = ctk.CTkLabel(
-            st_change_frame,
-            text="ECTS-Punkte deines Studiums?",
-        )
-        self.label_ects.grid(row=6, column=0, padx=5, pady=10)
-        self.entry_ects = ctk.CTkEntry(
-            st_change_frame, placeholder_text=f"{self.data['gesamt_ects']} ECTS-Punkte"
-        )
-        self.entry_ects.grid(row=6, column=1, sticky="ew", padx=5, pady=10)
-        self.label_no_int = ctk.CTkLabel(st_change_frame, text="", text_color=ROT)
-        self.label_no_int.grid(row=6, column=2, columnspan=2, padx=5, pady=10)
-        self.ects_button = ctk.CTkButton(
-            st_change_frame,
-            text="speichern",
-            text_color="black",
-            fg_color="transparent",
-            border_color="black",
-            border_spacing=2,
-            border_width=2,
-            hover_color="gray95",
-            command=self.save_ects,
-        )
-        self.ects_button.grid(row=6, column=4, padx=10, pady=10)
+        # self.label_ects = ctk.CTkLabel(
+        #     st_change_frame,
+        #     text="ECTS-Punkte deines Studiums?",
+        # )
+        # self.label_ects.grid(row=6, column=0, padx=5, pady=10)
+        # self.entry_ects = ctk.CTkEntry(
+        #     st_change_frame, placeholder_text=f"{self.data['gesamt_ects']} ECTS-Punkte"
+        # )
+        # self.entry_ects.grid(row=6, column=1, sticky="ew", padx=5, pady=10)
+        # self.label_no_int = ctk.CTkLabel(st_change_frame, text="", text_color=ROT)
+        # self.label_no_int.grid(row=6, column=2, columnspan=2, padx=5, pady=10)
+        # self.ects_button = ctk.CTkButton(
+        #     st_change_frame,
+        #     text="speichern",
+        #     text_color="black",
+        #     fg_color="transparent",
+        #     border_color="black",
+        #     border_spacing=2,
+        #     border_width=2,
+        #     hover_color="gray95",
+        #     command=self.save_ects,
+        # )
+        # self.ects_button.grid(row=6, column=4, padx=10, pady=10)
 
         # Modul-Anzahl
         # Darf nicht kleiner sein als begonnene + abgeschlossene + nicht_bestandene
@@ -3637,16 +3651,19 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
         else:
             self.startdatum_not_valid.configure(text="Kein Datum gewählt")
 
-    def save_ects(self) -> None:
-        """Validiert und speichert die neue Gesamt-ECTS-Punktzahl des Studiums."""
-        neu_ects_str = self.entry_ects.get().strip()
-        if self.validate_ects(neu_ects_str):
-            neu_ects = int(neu_ects_str)
-            if neu_ects != self.data["gesamt_ects"]:
-                self.controller.change_gesamt_ects(neu_ects)
-                self.label_no_int.configure(text="Gespeichert")
-            else:
-                self.label_no_int.configure(text="Entspricht bisherigen Wert")
+    # Deaktiviert, da sonst Studenten die ECTS-Punkte eines Studiengangs ändern können,
+    # das sollte nur durch Admins oder Hochschulen möglich sein.
+
+    # def save_ects(self) -> None:
+    #     """Validiert und speichert die neue Gesamt-ECTS-Punktzahl des Studiums."""
+    #     neu_ects_str = self.entry_ects.get().strip()
+    #     if self.validate_ects(neu_ects_str):
+    #         neu_ects = int(neu_ects_str)
+    #         if neu_ects != self.data["gesamt_ects"]:
+    #             self.controller.change_gesamt_ects(neu_ects)
+    #             self.label_no_int.configure(text="Gespeichert")
+    #         else:
+    #             self.label_no_int.configure(text="Entspricht bisherigen Wert")
 
     def save_modul_anzahl(self) -> None:
         """Speichert die neue Modulanzahl, falls sie vom bisherigen Wert abweicht."""
@@ -3773,10 +3790,11 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
         return bool(str(value).strip())
 
     def verify_email(self) -> bool:
-        """Validiert die Email und gibt ggf. Fehlertext aus.
+        """Validiert die Email, prüft Datenbank auf Existenz und gibt ggf. Fehlertext aus.
 
         Returns:
             bool: ``True`` bei erfolgreicher Prüfung.
+                  ``False``, falls EmailNotValidError auftritt oder Email-Adresse schon vorhanden ist.
         """
         valid = self.controller.validate_email_for_new_account(
             str(self.entry_email.get())
@@ -3786,6 +3804,11 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
             self.label_email_not_valid.configure(text=error)
             return False
         else:
+            if self.controller.check_if_email_exists(valid):
+                self.label_email_not_valid.configure(
+                    text="Diese Email hat schon einen Account"
+                )
+                return False
             self.selected_email = valid
             return True
 
@@ -3828,30 +3851,33 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
         self.selected_startdatum.set(from_iso_to_ddmmyyyy(date=date))
         self.selected_startdatum_real = date.isoformat()
 
-    def validate_ects(self, ects: str) -> bool:
-        """Prüft, ob ECTS eine gültige Ganzzahl (1-500) ist und größer gleich den erarbeiteten ECTS bleibt.
+    # Deaktiviert, da sonst Studenten die ECTS-Punkte eines Studiengangs ändern können,
+    # das sollte nur durch Admins oder Hochschulen möglich sein.
 
-        Returns:
-            bool: ``True``, wenn Prüfung erfolgreich.
-        """
-        try:
-            number = int(ects)
-        except ValueError:
-            self.label_no_int.configure(text="Muss eine (Ganz-) Zahl sein")
-            return False
+    # def validate_ects(self, ects: str) -> bool:
+    #     """Prüft, ob ECTS eine gültige Ganzzahl (1-500) ist und größer gleich den erarbeiteten ECTS bleibt.
 
-        if 0 < number <= 500:
-            if number >= self.data["erarbeitete_ects"]:
-                self.label_no_int.configure(text="")
-                return True
-            else:
-                self.label_no_int.configure(
-                    text="Du hast schon mehr ECTS-Punkte erarbeitet"
-                )
-                return False
-        else:
-            self.label_no_int.configure(text="Zahl muss zwischen 1 und 500 liegen")
-            return False
+    #     Returns:
+    #         bool: ``True``, wenn Prüfung erfolgreich.
+    #     """
+    #     try:
+    #         number = int(ects)
+    #     except ValueError:
+    #         self.label_no_int.configure(text="Muss eine (Ganz-) Zahl sein")
+    #         return False
+
+    #     if 0 < number <= 500:
+    #         if number >= self.data["erarbeitete_ects"]:
+    #             self.label_no_int.configure(text="")
+    #             return True
+    #         else:
+    #             self.label_no_int.configure(
+    #                 text="Du hast schon mehr ECTS-Punkte erarbeitet"
+    #             )
+    #             return False
+    #     else:
+    #         self.label_no_int.configure(text="Zahl muss zwischen 1 und 500 liegen")
+    #         return False
 
 
 class ExFrame(ctk.CTkFrame, CalendarMixin):
@@ -4305,7 +4331,9 @@ class UeberFrame(ctk.CTkFrame):
         ueber_label = MultiLineLabel(
             self,
             width=110,
-            text="Dieses Programm ist im Rahmen des Studiums 'Angewandte Künstliche Intelligenz' an der IU Internationalen Hochschule entstanden. Es wurde im 'Projekt: Objektorientierte und funktionale Programmierung mit Python' von Florian Erik Janssens entworfen und programmiert.",
+            text="Dieses Programm ist im Rahmen des Studiums 'Angewandte Künstliche Intelligenz' "
+            "an der IU Internationalen Hochschule entstanden. Es wurde im 'Projekt: Objektorientierte "
+            "und funktionale Programmierung mit Python' von Florian Erik Janssens entworfen und programmiert.",
             font=self.fonts.TEXT,
         )
         ueber_label.pack(pady=20)

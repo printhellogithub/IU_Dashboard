@@ -211,3 +211,6 @@ __marimo__/
 
 # Logs
 logs/
+
+# Datenbank
+data/data.db

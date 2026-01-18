@@ -80,6 +80,6 @@ def test_enrollment_status_progress(db):
         datum=datetime.date(2024, 3, 1),
     )
     db.session.commit()
-    e.check_status()
+    e.aktualisiere_status()
     assert e.status == EnrollmentStatus.ABGESCHLOSSEN
     assert e.berechne_enrollment_note() == 1.7
