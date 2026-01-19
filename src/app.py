@@ -21,9 +21,12 @@ logger = logging.getLogger(__name__)
 BACKGROUND = "#FFFFFF"
 BACKGROUND_DARK = "#696969"
 GRUEN = "#29C731"
+DUNKELGRUEN = "#05920C"
 HELLGRUEN = "#BFF9C2"
 GELB = "#FEC109"
+DUNKELGELB = "#C59609"
 ROT = "#F20D0D"
+DUNKELROT = "#9B0202"
 HELLROT = "#FF8585"
 GRAU = "#D9D9D9"
 DUNKELBLAU = "#0749BB"
@@ -94,6 +97,47 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+class Icons:
+    # Frame schließen
+    CLOSE = "\uf78a"  # e711
+
+    # Menu
+    MENU = "\ue700"
+
+    # Enrollment ausstehend (leerer Kreis)
+    RADIO_BUTTON_UNCHECKED = "\uecca"  # ea3a
+
+    # Enrollment hinzufügen (hover)
+    ADD_CIRCLE = "\uecc8"  # E710
+
+    # Enrollment in Bearbeitung
+    PENDING = "\ue895"  # f143 f16a
+
+    # Enrollment: Bestanden
+    CHECK_CIRCLE = "\ue930"  # ec61
+
+    # Enrollment nicht bestanden
+    CANCEL = "\uea39"  # eb90
+
+    # Prüfungsleistung (leere Checkbox)
+    CHECK_BOX_OUTLINE_BLANK = "\uf16b"
+
+    # Prüfungsleistung hinzufügen (hover)
+    ADD_BOX = "\uf164"
+
+    # nicht auswählbare Prüfungsleistung ()
+    SELECT = "\ue72e"  # nutze CHECK_BOX_OUTLINE_BLANK und mache Button disabled.
+
+    # Prüfungsleistung bestanden
+    SELECT_CHECK_BOX = "\uf16c"
+
+    # Prüfungsleistung nicht bestanden
+    DISABLED_BY_DEFAULT = "\uf16d"
+
+    # Account löschen
+    WARNING = "\ue7ba"  # e730 oder e783
+
+
 class Fonts:
     """Zentrale Sammlung vordefinierter Fonts für das Dashboard.
 
@@ -117,11 +161,17 @@ class Fonts:
 
     def __init__(self) -> None:
         """Erzeugt und konfiguriert ``CTkFont``-Objekte."""
+        # self.ICONS = ctk.CTkFont(
+        #     family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
+        # )
+        # self.ICONS_BIG = ctk.CTkFont(
+        #     family="Material Symbols Sharp", size=42, weight="normal", slant="roman"
+        # )
         self.ICONS = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
+            family="Segoe Fluent Icons", size=26, weight="normal", slant="roman"
         )
         self.ICONS_BIG = ctk.CTkFont(
-            family="Material Symbols Sharp", size=42, weight="normal", slant="roman"
+            family="Segoe Fluent Icons", size=42, weight="normal", slant="roman"
         )
         self.LOGIN = ctk.CTkFont(
             family="Segoe UI", size=140, weight="normal", slant="italic"
@@ -405,13 +455,17 @@ class DynamicEntries(ctk.CTkFrame):
         self.title_rechts.grid(row=0, column=1, sticky="e", padx=5)
 
         # Font für Icon
+        # icons = ctk.CTkFont(
+        #     family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
+        # )
         icons = ctk.CTkFont(
-            family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
+            family="Segoe Fluent Icons", size=26, weight="normal", slant="roman"
         )
         # Add-Button
         self.add_button = ctk.CTkButton(
             self.header,
-            text="add_circle",
+            # text="add_circle",
+            text="\ue710",
             font=icons,
             width=36,
             text_color="black",
@@ -718,6 +772,7 @@ class LoginFrame(ctk.CTkFrame):
         self.go_to_new_user = go_to_new_user
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         ctk.CTkLabel(self, text="DASHBOARD", font=self.fonts.LOGIN).pack(pady=20)
 
@@ -821,6 +876,7 @@ class NewUserFrame(ctk.CTkFrame, CalendarMixin):
         self.go_to_studiengang_auswahl = go_to_studiengang_auswahl
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -853,7 +909,7 @@ class NewUserFrame(ctk.CTkFrame, CalendarMixin):
 
         header_close_button = ctk.CTkButton(
             header_frame,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -1258,6 +1314,7 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         self.go_to_login = go_to_login
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -1287,7 +1344,7 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
 
         header_close_button = ctk.CTkButton(
             header_frame,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -1529,6 +1586,7 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
         self.menu_popup: ctk.CTkToplevel | None = None
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self.data = self.controller.load_dashboard_data()
 
@@ -1574,7 +1632,7 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
         # Menu-Button
         self.menu_button = ctk.CTkButton(
             right_frame,
-            text="menu",
+            text=self.icons.MENU,
             width=10,
             fg_color="transparent",
             text_color="black",
@@ -1798,18 +1856,20 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
         module_label.grid(row=0, column=0, sticky="w", padx=5)
 
         # Enrollment-Icons-Größe
-        size = 16
         if self.data["modulanzahl"] < 39:
-            size = 26
+            size = 22
         elif self.data["modulanzahl"] < 49:
-            size = 20
-        elif self.data["modulanzahl"] < 56:
             size = 16
-        else:
+        elif self.data["modulanzahl"] < 56:
             size = 12
+        else:
+            size = 10
 
+        # ENROLLMENTICONS = ctk.CTkFont(
+        #     family="Material Symbols Sharp", size=size, weight="normal", slant="roman"
+        # )
         ENROLLMENTICONS = ctk.CTkFont(
-            family="Material Symbols Sharp", size=size, weight="normal", slant="roman"
+            family="Segoe Fluent Icons", size=size, weight="normal", slant="roman"
         )
 
         one_frame = ctk.CTkFrame(module_frame, fg_color="transparent")
@@ -1823,11 +1883,15 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
                 status = str(enrollment["status"])
                 if status == "ABGESCHLOSSEN":
                     one_frame.grid_columnconfigure(i, weight=1, uniform="modul_icons")
-                    icon = ctk.CTkButton(
+                    icon = HoverButton(
                         one_frame,
                         font=ENROLLMENTICONS,
-                        text="check_circle",
+                        text=self.icons.CHECK_CIRCLE,
                         text_color=GRUEN,
+                        defaulttext=self.icons.CHECK_CIRCLE,
+                        defaultcolor=GRUEN,
+                        hovertext=self.icons.CHECK_CIRCLE,
+                        hovercolor=DUNKELGRUEN,
                         fg_color="transparent",
                         hover_color=BACKGROUND,
                         border_width=0,
@@ -1844,11 +1908,15 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
                     )
                 elif status == "IN_BEARBEITUNG":
                     one_frame.grid_columnconfigure(i, weight=1, uniform="modul_icons")
-                    icon = ctk.CTkButton(
+                    icon = HoverButton(
                         one_frame,
                         font=ENROLLMENTICONS,
-                        text="pending",
+                        text=self.icons.PENDING,
                         text_color=GELB,
+                        defaulttext=self.icons.PENDING,
+                        defaultcolor=GELB,
+                        hovertext=self.icons.PENDING,
+                        hovercolor=DUNKELGELB,
                         fg_color="transparent",
                         hover_color=BACKGROUND,
                         border_width=0,
@@ -1865,11 +1933,15 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
                     )
                 elif status == "NICHT_BESTANDEN":
                     one_frame.grid_columnconfigure(i, weight=1, uniform="modul_icons")
-                    icon = ctk.CTkButton(
+                    icon = HoverButton(
                         one_frame,
                         font=ENROLLMENTICONS,
-                        text="cancel",
+                        text=self.icons.CANCEL,
                         text_color=ROT,
+                        defaulttext=self.icons.CANCEL,
+                        defaultcolor=ROT,
+                        hovertext=self.icons.CANCEL,
+                        hovercolor=DUNKELROT,
                         fg_color="transparent",
                         hover_color=BACKGROUND,
                         border_width=0,
@@ -1891,11 +1963,11 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
                 icon = HoverButton(
                     one_frame,
                     font=ENROLLMENTICONS,
-                    text="radio_button_unchecked",
+                    text=self.icons.RADIO_BUTTON_UNCHECKED,
                     text_color=GRAU,
-                    defaulttext="radio_button_unchecked",
+                    defaulttext=self.icons.RADIO_BUTTON_UNCHECKED,
                     defaultcolor=GRAU,
-                    hovertext="add_circle",
+                    hovertext=self.icons.ADD_CIRCLE,
                     hovercolor=BLAU,
                     fg_color="transparent",
                     border_width=0,
@@ -2148,6 +2220,7 @@ class AddEnrollmentFrame(ctk.CTkScrollableFrame, CalendarMixin):
         self.go_to_enrollment = go_to_enrollment
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -2180,7 +2253,7 @@ class AddEnrollmentFrame(ctk.CTkScrollableFrame, CalendarMixin):
 
         header_close_button = ctk.CTkButton(
             header_frame,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -2499,6 +2572,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
         self.enrollment_id = enrollment_id
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self.enrollment_data = self.controller.get_enrollment_data(self.enrollment_id)
 
@@ -2558,7 +2632,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
 
         modul_close_button = ctk.CTkButton(
             modul_frame,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -2718,10 +2792,10 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
                             fg_color="transparent",
                             hover_color="gray95",
                             hovercolor=BLAU,
-                            hovertext="add_box",
+                            hovertext=self.icons.ADD_BOX,
                             defaultcolor="black",
-                            defaulttext="check_box_outline_blank",
-                            text="check_box_outline_blank",
+                            defaulttext=self.icons.CHECK_BOX_OUTLINE_BLANK,
+                            text=self.icons.CHECK_BOX_OUTLINE_BLANK,
                             text_color="black",
                             font=self.fonts.ICONS,
                             command=lambda pl_id=versuch["id"],
@@ -2746,7 +2820,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
                             fg_color="transparent",
                             hover_color="gray95",
                             text_color=GRAU,
-                            text="Select",
+                            text=self.icons.CHECK_BOX_OUTLINE_BLANK,
                             font=self.fonts.ICONS,
                             state="disabled",
                         )
@@ -2763,7 +2837,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
                             fg_color="transparent",
                             hover_color="gray95",
                             text_color=GRUEN,
-                            text="select_check_box",
+                            text=self.icons.SELECT_CHECK_BOX,
                             font=self.fonts.ICONS,
                             command=lambda pl_id=versuch["id"],
                             e_id=self.enrollment_id: self.after(
@@ -2787,7 +2861,7 @@ class EnrollmentFrame(ctk.CTkScrollableFrame):
                             fg_color="transparent",
                             hover_color="gray95",
                             text_color=ROT,
-                            text="disabled_by_default",
+                            text=self.icons.DISABLED_BY_DEFAULT,
                             font=self.fonts.ICONS,
                             command=lambda pl_id=versuch["id"],
                             e_id=self.enrollment_id: self.after(
@@ -2952,6 +3026,7 @@ class PLAddFrame(ctk.CTkFrame, CalendarMixin):
         self.enrollment_id = e_id
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -3013,7 +3088,7 @@ class PLAddFrame(ctk.CTkFrame, CalendarMixin):
 
         pl_close_button = ctk.CTkButton(
             pl_frame,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -3108,7 +3183,7 @@ class PLAddFrame(ctk.CTkFrame, CalendarMixin):
             pl_show_frame,
             text="Nicht bestanden!",
             text_color=ROT,
-            font=self.fonts.H1notitalic,
+            font=self.fonts.H1,
         )
         pl_status_label_good = ctk.CTkLabel(
             pl_show_frame,
@@ -3212,6 +3287,7 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
         self.go_to_login = go_to_login
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -3249,7 +3325,7 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
 
         settings_close_button = ctk.CTkButton(
             settings_frame,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -3788,7 +3864,7 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
 
         settings_close_button = ctk.CTkButton(
             top,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -3799,9 +3875,9 @@ class SettingsFrame(ctk.CTkScrollableFrame, CalendarMixin):
         )
         settings_close_button.pack(pady=5, anchor="ne")
 
-        ctk.CTkLabel(top, text="warning", text_color=ROT, font=self.fonts.ICONS).pack(
-            pady=10
-        )
+        ctk.CTkLabel(
+            top, text=self.icons.WARNING, text_color=ROT, font=self.fonts.ICONS
+        ).pack(pady=10)
 
         ctk.CTkLabel(
             top,
@@ -3954,6 +4030,7 @@ class ExFrame(ctk.CTkFrame, CalendarMixin):
         self.data = self.controller.load_dashboard_data()
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self._init_header()
         self._init_form()
@@ -3981,7 +4058,7 @@ class ExFrame(ctk.CTkFrame, CalendarMixin):
 
         ex_close_button = ctk.CTkButton(
             ex_frame,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -4132,6 +4209,7 @@ class ZieleFrame(ctk.CTkFrame, CalendarMixin):
         self.data = self.controller.load_dashboard_data()
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         self._init_header()
         self._init_form()
@@ -4159,7 +4237,7 @@ class ZieleFrame(ctk.CTkFrame, CalendarMixin):
 
         ziele_close_button = ctk.CTkButton(
             ziele_frame,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -4343,10 +4421,11 @@ class UeberFrame(ctk.CTkFrame):
         self.go_to_dashboard = go_to_dashboard
 
         self.fonts = master.fonts
+        self.icons = master.icons
 
         ueber_close_button = ctk.CTkButton(
             self,
-            text="Close",
+            text=self.icons.CLOSE,
             font=self.fonts.ICONS,
             width=10,
             fg_color="transparent",
@@ -4472,6 +4551,7 @@ class App(ctk.CTk):
         # ctk.FontManager.load_font(str(FONT_PATH_NOTO))
         ctk.FontManager.load_font(str(FONT_PATH_MATERIAL))
         self.fonts = Fonts()
+        self.icons = Icons()
 
         self.controller = Controller(seed=True, offline=offline)
 
