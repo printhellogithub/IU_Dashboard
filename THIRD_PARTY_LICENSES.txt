@@ -3,15 +3,24 @@ Third-Party Licenses
 
 This project uses the following open-source libraries:
 
-1. SQLAlchemy (MIT License) - Copyright (c) 2005-2024 Michael Bayer
-2. CustomTkinter (MIT License) - Copyright (c) 2021-2024 Tom Schimansky
-3. tkcalendar (MIT License) - Copyright (c) 2017-2024 Juliette Monsel
-4. argon2-cffi (MIT License) - Copyright (c) 2015 Hynek Schlawack
-5. python-dateutil (Apache 2.0 / BSD) - Copyright (c) 2003-2024 Gustavo Niemeyer
-6. email-validator (CC0 Public Domain) - No copyright required
-7. Python Standard Library (PSF License) - Copyright (c) Python Software Foundation
+1. SQLAlchemy (MIT License) - Copyright (c) 2005-2026 Michael Bayer and contributors. SQLAlchemy is a trademark of Michael Bayer.
+2. CustomTkinter (MIT License) - Copyright (c) 2023 Tom Schimansky
+3. tkcalendar (GPLv3) - Copyright (C) 2017-2018 Juliette Monsel with contributions from: Neal Probert, arahorn28
+4. argon2-cffi (MIT License) - Copyright (c) 2015 Hynek Schlawack and the argon2-cffi contributors
+5. python-dateutil (Apache 2.0 / BSD 3-clause) - 
+Copyright (c) 2003-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
+Copyright (c) 2012-2014 - Tomi Pieviläinen <tomi.pievilainen@iki.fi>
+Copyright (c) 2014-2016 - Yaron de Leeuw <me@jarondl.net>
+Copyright (c) 2015-     - Paul Ganssle <paul@ganssle.io>
+Copyright (c) 2015-     - dateutil contributors
+6. email-validator (The Unlicense) - No copyright required - Author: Joshua Tauberer
+7. pytest (MIT License) - Copyright (c) 2004 Holger Krekel and others
+8. Python Standard Library (PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2) - Copyright (c) Python Software Foundation
 
 Full license texts are available at:
 - MIT: https://opensource.org/licenses/MIT
+- GPLv3: https://www.gnu.org/licenses/gpl-3.0.de.html
 - Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0
-- PSF: https://docs.python.org/3/license.html
+- BSD-3-Clause: https://opensource.org/license/BSD-3-Clause
+- The Unlicense: https://unlicense.org/
+- PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2: https://docs.python.org/3/license.html

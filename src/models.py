@@ -2,10 +2,6 @@
 
 Enthält Entity-Klassen (Student, Hochschule, Studiengang, Modul, Kurs, Enrollment,
 Pruefungsleistung, Semester) sowie Enums für Statuswerte.
-
-Hinweis:
-- Passwörter werden über Argon2 gehasht (Setter in Student).
-- Einige Methoden enthalten Domain-Logik (z. B. Statusberechnung im Enrollment).
 """
 
 from __future__ import annotations
