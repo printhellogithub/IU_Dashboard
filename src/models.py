@@ -11,7 +11,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from typing import List, Optional, NoReturn
 from enum import Enum, auto
-from email_validator import validate_email, EmailNotValidError
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 import datetime
@@ -165,13 +164,8 @@ class Student(Base):
 
     @email.setter
     def email(self, value: str) -> None:
-        # Überprüft die Syntax und Zustellbarkeit.
-        # Speichert normalisierte Email bei erfolgreicher Prüfung.
-        try:
-            new_address = validate_email(value, check_deliverability=True).email
-            self._email = new_address
-        except EmailNotValidError as e:
-            raise ValueError(f"Ungültige Email: {e}")
+        # Bekommt von Controller validierte Email-Adresse
+        self._email = value
 
     @hybrid_property
     def password(self) -> NoReturn:  # type: ignore[reportRedeclaration]

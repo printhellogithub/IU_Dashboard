@@ -171,12 +171,6 @@ class Fonts:
 
     def __init__(self) -> None:
         """Erzeugt und konfiguriert ``CTkFont``-Objekte."""
-        # self.ICONS = ctk.CTkFont(
-        #     family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        # )
-        # self.ICONS_BIG = ctk.CTkFont(
-        #     family="Material Symbols Sharp", size=42, weight="normal", slant="roman"
-        # )
         self.ICONS = ctk.CTkFont(
             family="Segoe Fluent Icons", size=26, weight="normal", slant="roman"
         )
@@ -465,9 +459,6 @@ class DynamicEntries(ctk.CTkFrame):
         self.title_rechts.grid(row=0, column=1, sticky="e", padx=5)
 
         # Font für Icon
-        # icons = ctk.CTkFont(
-        #     family="Material Symbols Sharp", size=26, weight="normal", slant="roman"
-        # )
         icons = ctk.CTkFont(
             family="Segoe Fluent Icons", size=26, weight="normal", slant="roman"
         )
@@ -1879,9 +1870,6 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
         else:
             size = 10
 
-        # ENROLLMENTICONS = ctk.CTkFont(
-        #     family="Material Symbols Sharp", size=size, weight="normal", slant="roman"
-        # )
         ENROLLMENTICONS = ctk.CTkFont(
             family="Segoe Fluent Icons", size=size, weight="normal", slant="roman"
         )
