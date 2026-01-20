@@ -16,7 +16,7 @@ Mindestanforderungen liegen bei Windows 10 oder macOS 14.7. Das Programm wurde n
 Es muss Python 3.11 oder höher installiert sein. 
 Das Programm wurde mit Python ≥ 3.11 getestet und mit einer aktuellen Python-3.13-Version entwickelt.
 
-Um auf Windows Python 3.13 zu installieren, geben Sie in der Windows Eingabeaufforderung den Befehl `winget install Python.Python.3.13` ein und drücken Enter. Eventuell müssen Sie mit `Y` die Bedingungen der Vereinbarungen bestätigen. Python wird installiert. Nach erfolgreicher Installation können Sie CMD schließen. Alternativ können Sie den Installer von der [offiziellen Python-Website herunterladen](https://www.python.org/downloads/windows/). Führen Sie diesen aus.
+Um auf Windows Python 3.13 zu installieren, geben Sie in der Windows Eingabeaufforderung den Befehl `winget install Python.Python.3.13` ein und drücken Enter. Eventuell müssen Sie mit `Y` die Bedingungen der Vereinbarungen bestätigen. Python wird installiert. Nach erfolgreicher Installation können Sie CMD schließen. Alternativ können Sie den Installer von der [offiziellen Python-Website herunterladen](https://www.python.org/downloads/windows/). Führen Sie diesen aus und setzen Sie den Haken bei `Add python.exe to PATH`.
 
 Um auf Mac Python zu installieren, laden Sie sich den Installer von der [offiziellen Python-Website herunter](https://www.python.org/downloads/macos/). Führen Sie diesen aus. Alternativ können Sie über homebrew (erfordert homebrew-Installation) Python mit dem Befehl ``brew install python`` installieren.
 
