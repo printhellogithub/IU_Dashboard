@@ -30,10 +30,10 @@ Falls git installiert sein sollte, können Sie das GitHub-Repo mit
 `git clone https://github.com/printhellogithub/IU_Dashboard` klonen. 
 
 2️ **Projektordner in CMD öffnen**
-Öffnen Sie den entpackten Projektordner `IU_Dashboard-main` im Explorer. Dort können Sie Verzeichnisse wie `assets` und `data` sehen.
+Öffnen Sie den entpackten Projektordner `IU_Dashboard-main` im Explorer. Dort können Sie Verzeichnisse wie `src` und `data` sehen.
 Geben Sie `cmd` in die Adresszeile ein und drücken Enter.
 Der Ordner wird in CMD geöffnet.
-Sie sollten bei dem Befehl `dir` jetzt Verzeichnisse wie `assets` und `data` sehen können.
+Sie sollten bei dem Befehl `dir` jetzt Verzeichnisse wie `src` und `data` sehen können.
 
 3️ **Virtuelle Umgebung einrichten und aktivieren**
 Jetzt können Sie die Virtuelle Umgebung einrichten. 
@@ -54,7 +54,7 @@ Falls git installiert sein sollte, können Sie das GitHub-Repo mit
 Entpacken Sie die Zip mit einem Doppelklick: Der Projektordner `IU_Dashboard-main` wird im Finder nun sichtbar. 
 Mit Rechtsklick auf den Ordner öffnet sich ein Dropdown-Menü. Wählen Sie die Option zum Öffnen eines Terminals beim Ordner.
 Der Ordner wird im Terminal geöffnet.
-Sie sollten bei dem Befehl `ls` jetzt Verzeichnisse wie `assets` und `data` sehen können.
+Sie sollten bei dem Befehl `ls` jetzt Verzeichnisse wie `src` und `data` sehen können.
 
 3️ **Virtuelle Umgebung einrichten und aktivieren**
 Jetzt können Sie die Virtuelle Umgebung einrichten. 
