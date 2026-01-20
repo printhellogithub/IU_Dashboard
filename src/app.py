@@ -316,9 +316,11 @@ class ToolTip:
         self.widget = widget
         self.text = text
         self.tip = None
-        widget.bind("<Enter>", self.show)
-        widget.bind("<Leave>", self.hide)
-        widget.bind("<ButtonPress>", self.hide)
+        widget.bind("<Enter>", self.show, add="+")
+        widget.bind("<Leave>", self.hide, add="+")
+        widget.bind("<ButtonPress>", self.hide, add="+")
+        widget.bind("<Button-1>", self.hide, add="+")
+        widget.bind("<ButtonRelease-1>", self.hide, add="+")
 
     def show(self, event) -> None:
         """Zeigt den ToolTip nahe der aktuellen Mausposition an.
