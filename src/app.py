@@ -98,6 +98,13 @@ def parse_args() -> argparse.Namespace:
 
 
 class Icons:
+    """Zentrale Sammlung vordefinierter Icons für das Dashboard.
+
+    Die Klasse speichert Unicode-Punkte der Schriftart ``Segoe Fluent Icons`` von Microsoft in Variablen.
+    Die Namen der Variablen stammen von der vorher verwendeten Schriftart ``Material Symbols Sharp`` von Google,
+    die durch Segoe ersetzt wurde.
+    """
+
     # Frame schließen
     CLOSE = "\uf78a"  # e711
 
@@ -142,9 +149,14 @@ class Fonts:
     """Zentrale Sammlung vordefinierter Fonts für das Dashboard.
 
     Die Klasse erzeugt verschiedene ``CTkFont``-Objekte auf Basis von
-    ``Noto Sans Condensed`` für Text und Überschriften, sowie
-    ``Material Symbols Sharp`` für Icons. Dadurch stehen konsistente
+    ``Segoe UI`` für Text und Überschriften, sowie
+    ``Segoe Fluent Icons`` für Icons. Dadurch stehen konsistente
     Schriftgrößen und -stile im gesamten User Interface zur Verfügung.
+
+    Diese Schriftarten sind auf Windows 11 Systemen vorinstalliert und
+    somit für das Dashboard verfügbar.
+    Auf anderen Systemen muss ``Segoe Fluent Icons`` installiert werden.
+    Auf Mac-Systemen wird statt ``Segoe UI`` der automatische System-Fallback verwendet.
 
     Attribute:
         LOGIN (ctk.CTkFont): Sehr groß und italic für DASHBOARD-Banner auf Login-Screen (140px).
@@ -1726,7 +1738,11 @@ class DashboardFrame(ctk.CTkFrame, MenuMixin):
             * blau, normales laufendes Studium (nicht alle ECTS erreicht, nicht exmatrikuliert)
         """
 
-        progress_frame = ctk.CTkFrame(self, fg_color="transparent")
+        progress_frame = ctk.CTkFrame(
+            self,
+            height=10,
+            fg_color="transparent",
+        )
         progress_frame.grid(
             row=2, column=0, columnspan=2, sticky="nsew", padx=10, pady=5
         )
@@ -4488,7 +4504,7 @@ class UeberFrame(ctk.CTkFrame):
             hover_color="gray95",
             command=lambda: webbrowser.open_new_tab(hochschulkompass_url),
         )
-        hochschulkompass_url_button.pack(pady=(10, 20))
+        hochschulkompass_url_button.pack(pady=(10, 5))
         ToolTip(
             hochschulkompass_url_button, text="Öffnet Hochschulkompass.de im Browser"
         )
@@ -4506,7 +4522,7 @@ class UeberFrame(ctk.CTkFrame):
             hover_color="gray95",
             command=lambda: webbrowser.open_new_tab(url),
         )
-        gh_button.pack(pady=20)
+        gh_button.pack(pady=10)
         ToolTip(gh_button, text="Öffnet GitHub-Repository im Browser")
 
 
