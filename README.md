@@ -11,7 +11,7 @@ GitHub-Repository: https://github.com/printhellogithub/IU_Dashboard
 
 ### Voraussetzungen
 Dieses Programm erfordert Windows 11 **oder** die Installation der Schriftart "Segoe Fluent Icons“.
-Mindestanforderungen liegen bei Windows 7 oder MacOS 14.7. Das Programm wurde nur auf Windows 11 und MacOS 14.7 getestet.
+Mindestanforderungen liegen bei Windows 7 oder macOS 14.7. Das Programm wurde nur auf Windows 11 und macOS 14.7 getestet.
 
 Es muss Python 3.11 oder höher installiert sein. 
 Das Programm wurde mit Python ≥ 3.11 getestet und mit einer aktuellen Python-3.13-Version entwickelt.
@@ -52,7 +52,7 @@ Falls git installiert sein sollte, können Sie das GitHub-Repo mit
 
 2️ **Projektordner in Terminal öffnen**
 Entpacken Sie die Zip mit einem Doppelklick: Der Projektordner `IU_Dashboard-main` wird im Finder nun sichtbar. 
-Mit Rechtsklick auf den Ordner öffnet sich ein Dropdown-Menu. Wählen Sie `Neues Terminal beim Ordner`.
+Mit Rechtsklick auf den Ordner öffnet sich ein Dropdown-Menü. Wählen Sie die Option zum Öffnen eines Terminals beim Ordner.
 Der Ordner wird im Terminal geöffnet.
 Sie sollten bei dem Befehl `ls` jetzt Verzeichnisse wie `assets` und `data` sehen können.
 
@@ -66,7 +66,7 @@ Um erforderliche Pakete zu installieren, geben Sie
 `python -m pip install -r requirements.txt` ein.
 
 ### Das Dashboard starten
-Nach Erfolgreicher Installation lässt sich das Dashboard mit dem Befehl `py -m src.app` auf Windows und mit `python -m src.app` auf Mac starten.
+Nach erfolgreicher Installation lässt sich das Dashboard mit dem Befehl `py -m src.app` auf Windows und mit `python -m src.app` auf Mac starten.
 
 **Startoptionen**
 Das Dashboard lässt sich in verschiedenen Modi starten, diese lassen sich auch kombinieren (z.B. `py -m src.app --follow_system_mode --offline` (Windows)):
