@@ -22,7 +22,7 @@ Um auf Mac Python zu installieren, laden Sie sich den Installer von der [offizie
 
 ### Installation des Dashboards auf Windows
 
-$${\color{red}Alle folgenden Befehle beziehen sich auf die Windows Eingabeaufforderung (CMD.exe).}$$
+*Alle folgenden Befehle beziehen sich auf die Windows Eingabeaufforderung (CMD.exe).*
 
 1️ **GitHub-Repo klonen oder herunterladen**
 Um das Programm herunterzuladen, laden Sie die ZIP-Datei des Repos vom [GitHub Repo](https://github.com/printhellogithub/IU_Dashboard), die bei dem grünen Code-Button bereitgestellt wird. Entpacken Sie die ZIP-Datei.
