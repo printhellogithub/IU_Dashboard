@@ -35,8 +35,10 @@ HELLBLAU = "#B5D0FF"
 
 # GLOBAL - Pfade
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# . Deaktiviert, da durch Segoe ersetzt.
 # FONT_PATH_NOTO = BASE_DIR / "assets" / "fonts" / "NotoSans_Condensed-Light.ttf"
-FONT_PATH_MATERIAL = BASE_DIR / "assets" / "fonts" / "MaterialSymbolsSharp-Light.ttf"
+# FONT_PATH_MATERIAL = BASE_DIR / "assets" / "fonts" / "MaterialSymbolsSharp-Light.ttf"
 
 
 def from_iso_to_ddmmyyyy(date: str | datetime.date | None) -> str:
@@ -4565,7 +4567,9 @@ class App(ctk.CTk):
 
         # vorerst deaktiviert
         # ctk.FontManager.load_font(str(FONT_PATH_NOTO))
-        ctk.FontManager.load_font(str(FONT_PATH_MATERIAL))
+        # ctk.FontManager.load_font(str(FONT_PATH_MATERIAL))
+
+        # Fonts und Icons laden
         self.fonts = Fonts()
         self.icons = Icons()
 
