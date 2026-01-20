@@ -1391,6 +1391,7 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
             sa_frame,
             # placeholder_text="ECTS-Punkte",
             values=[str(p) for p in range(30, 390, 30)],
+            text_color="black",
             fg_color="gray95",
             button_color="gray95",
             button_hover_color="gray85",
