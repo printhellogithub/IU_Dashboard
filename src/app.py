@@ -1387,10 +1387,13 @@ class StudiengangAuswahlFrame(ctk.CTkFrame):
         self.label_ects.pack(pady=5)
         # self.entry_ects = ctk.CTkEntry(sa_frame, placeholder_text="ECTS-Punkte")
         # self.entry_ects.pack(pady=10)
-        self.entry_ects = ctk.CTkComboBox(
+        self.entry_ects = ctk.CTkOptionMenu(
             sa_frame,
             # placeholder_text="ECTS-Punkte",
             values=[str(p) for p in range(30, 390, 30)],
+            fg_color="gray95",
+            button_color="gray95",
+            button_hover_color="gray85",
         )
         self.entry_ects.pack(pady=10)
         self.label_no_int = ctk.CTkLabel(sa_frame, text="", text_color=ROT)
