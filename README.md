@@ -11,7 +11,7 @@ GitHub-Repository: https://github.com/printhellogithub/IU_Dashboard
 
 ### Voraussetzungen
 Dieses Programm erfordert Windows 11 **oder** die Installation der Schriftart "Segoe Fluent Icons“.
-Mindestanforderungen liegen bei Windows 7 oder macOS 14.7. Das Programm wurde nur auf Windows 11 und macOS 14.7 getestet.
+Mindestanforderungen liegen bei Windows 10 oder macOS 14.7. Das Programm wurde nur auf Windows 11 und macOS 14.7 getestet.
 
 Es muss Python 3.11 oder höher installiert sein. 
 Das Programm wurde mit Python ≥ 3.11 getestet und mit einer aktuellen Python-3.13-Version entwickelt.
